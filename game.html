@@ -116,6 +116,7 @@ input[type="file"]{display:none}
 <div class="subtitle">YOUR REAL HEALTH DATA BECOMES YOUR FIGHTER STATS</div>
 <div class="upload-section">
 <input type="text" id="fighterName" placeholder="ENTER FIGHTER NAME" maxlength="12" style="text-align:center">
+<input type="number" id="chronoAge" placeholder="YOUR AGE (OPTIONAL BUT RECOMMENDED)" min="10" max="120" style="text-align:center;-moz-appearance:textfield">
 <label class="file-label" id="fileLabel"><input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.pdf,.txt">UPLOAD EXCEL / CSV / PDF</label>
 <div id="fileStatus" style="font-size:9px;color:#00ff88;min-height:16px"></div>
 <div class="or-text">- OR PASTE BLOODWORK TEXT -</div>
@@ -164,10 +165,11 @@ input[type="file"]{display:none}
 <div class="screen" id="prefightScreen">
 <div style="text-align:center">
 <div class="vs-fighters">
-<div class="vs-fighter"><canvas id="vsP1C" width="96" height="96"></canvas><div id="vsP1N" style="font-size:14px;color:#00ff88"></div><div id="vsP1A" style="font-size:10px;color:#888"></div></div>
+<div class="vs-fighter"><canvas id="vsP1C" width="96" height="96"></canvas><div id="vsP1N" style="font-size:14px;color:#00ff88"></div><div id="vsP1A" style="font-size:10px;color:#888"></div><div id="vsP1Delta" style="font-size:9px;margin-top:2px"></div></div>
 <div class="vs-text">VS</div>
-<div class="vs-fighter"><canvas id="vsP2C" width="96" height="96"></canvas><div id="vsP2N" style="font-size:14px;color:#ff4444"></div><div id="vsP2A" style="font-size:10px;color:#888"></div></div>
+<div class="vs-fighter"><canvas id="vsP2C" width="96" height="96"></canvas><div id="vsP2N" style="font-size:14px;color:#ff4444"></div><div id="vsP2A" style="font-size:10px;color:#888"></div><div id="vsP2Delta" style="font-size:9px;margin-top:2px"></div></div>
 </div>
+<div id="bioBreakdown" style="max-width:500px;margin:8px auto;text-align:left;display:none"></div>
 <div class="special-reveal" id="specialReveal"></div>
 <button class="btn btn-red blink" id="vsFightBtn" style="margin-top:20px;display:none" onclick="startFight()">FIGHT!</button>
 <div class="subtitle" id="vsFightMsg" style="margin-top:20px"></div>
@@ -268,11 +270,11 @@ function handleMPMsg(msg){
       break;
     case 'joined':
       mpPlayerNum=msg.playerNum;
-      OD={name:msg.opponentData.name,stats:msg.opponentData.stats,skinIndex:msg.opponentData.skinIndex,bioAge:msg.opponentData.bioAge,special:msg.opponentData.special,isAI:false};
+      OD={name:msg.opponentData.name,stats:msg.opponentData.stats,skinIndex:msg.opponentData.skinIndex,bioAge:msg.opponentData.bioAge,chronoAge:msg.opponentData.chronoAge,bioDelta:msg.opponentData.bioDelta,special:msg.opponentData.special,isAI:false};
       startPrefight();
       break;
     case 'opponent_joined':
-      OD={name:msg.opponentData.name,stats:msg.opponentData.stats,skinIndex:msg.opponentData.skinIndex,bioAge:msg.opponentData.bioAge,special:msg.opponentData.special,isAI:false};
+      OD={name:msg.opponentData.name,stats:msg.opponentData.stats,skinIndex:msg.opponentData.skinIndex,bioAge:msg.opponentData.bioAge,chronoAge:msg.opponentData.chronoAge,bioDelta:msg.opponentData.bioDelta,special:msg.opponentData.special,isAI:false};
       document.getElementById('mpWaiting').textContent='OPPONENT FOUND!';
       document.getElementById('mpWaiting').style.color='#00ff88';
       document.getElementById('mpWaiting').classList.remove('blink');
@@ -307,7 +309,7 @@ function startMPHost(){
   document.getElementById('mpActions').style.display='none';
   document.getElementById('mpWaiting').style.display='none';
   mpConnect(function(){
-    mpSend({type:'create',playerData:{name:PD.name,stats:PD.stats,skinIndex:PD.skinIndex,bioAge:PD.bioAge,special:PD.special}});
+    mpSend({type:'create',playerData:{name:PD.name,stats:PD.stats,skinIndex:PD.skinIndex,bioAge:PD.bioAge,chronoAge:PD.chronoAge,bioDelta:PD.bioDelta,special:PD.special}});
   });
 }
 function copyMPLink(){
@@ -458,7 +460,7 @@ function confirmChar(){
     document.getElementById('mpActions').style.display='none';
     document.getElementById('mpWaiting').style.display='none';
     mpConnect(function(){
-      mpSend({type:'join',roomCode:mpJoinCode,playerData:{name:PD.name,stats:PD.stats,skinIndex:PD.skinIndex,bioAge:PD.bioAge,special:PD.special}});
+      mpSend({type:'join',roomCode:mpJoinCode,playerData:{name:PD.name,stats:PD.stats,skinIndex:PD.skinIndex,bioAge:PD.bioAge,chronoAge:PD.chronoAge,bioDelta:PD.bioDelta,special:PD.special}});
     });
   } else {
     showScreen('modeScreen');
@@ -546,8 +548,8 @@ const MK={
   a1c:{k:['a1c','hba1c','hemoglobin a1c','glycated'],r:[4.0,5.7],d:-1},
   insulin:{k:['insulin','fasting insulin'],r:[2,6],d:-1},
   egfr:{k:['egfr','gfr','glomerular'],r:[90,120],d:1},
-  crp:{k:['crp','c-reactive','hs-crp','hscrp'],r:[0,1.0],d:-1},
-  testosterone:{k:['testosterone'],r:[300,900],d:1},
+  crp:{k:['crp','c-reactive','hs-crp','hscrp','high sensitivity'],r:[0,1.0],d:-1},
+  testosterone:{k:['testosterone','total testosterone'],r:[300,900],d:1},
   tsh:{k:['tsh','thyroid stimulating'],r:[0.5,4.0],d:-1},
   hemoglobin:{k:['hemoglobin','hgb'],r:[12,17],d:1},
   ast:{k:['ast','aspartate','sgot'],r:[10,35],d:-1},
@@ -555,9 +557,32 @@ const MK={
   restingHR:{k:['resting heart rate','resting hr','rhr','heart rate'],r:[40,80],d:-1},
   vo2max:{k:['vo2max','vo2 max','vo2'],r:[20,60],d:1},
   cortisol:{k:['cortisol'],r:[5,25],d:-1},
-  vitaminD:{k:['vitamin d','25-hydroxy'],r:[30,80],d:1},
-  dhea:{k:['dhea','dhea-s'],r:[100,500],d:1},
-  ferritin:{k:['ferritin'],r:[30,200],d:0}
+  vitaminD:{k:['vitamin d','25-hydroxy','25(oh)'],r:[30,80],d:1},
+  dhea:{k:['dhea','dhea-s','dhea sulfate'],r:[100,500],d:1},
+  ferritin:{k:['ferritin'],r:[30,200],d:0},
+  albumin:{k:['albumin'],r:[3.5,5.0],d:1},
+  wbc:{k:['wbc','white blood cell','white blood count','leukocyte'],r:[4.0,10.0],d:-1},
+  rbc:{k:['rbc','red blood cell','red blood count','erythrocyte'],r:[4.0,5.5],d:1},
+  platelets:{k:['platelets','platelet count','plt'],r:[150,400],d:0},
+  creatinine:{k:['creatinine','creat'],r:[0.6,1.2],d:-1},
+  bun:{k:['bun','blood urea nitrogen','urea nitrogen'],r:[7,20],d:-1},
+  uricAcid:{k:['uric acid','urate'],r:[3.0,7.0],d:-1},
+  totalProtein:{k:['total protein','protein total'],r:[6.0,8.0],d:0},
+  bilirubin:{k:['bilirubin','total bilirubin'],r:[0.1,1.2],d:0},
+  iron:{k:['iron','serum iron'],r:[60,170],d:0},
+  b12:{k:['b12','vitamin b12','cobalamin'],r:[200,900],d:1},
+  folate:{k:['folate','folic acid'],r:[3,20],d:1},
+  magnesium:{k:['magnesium','mg'],r:[1.7,2.2],d:1},
+  homocysteine:{k:['homocysteine'],r:[5,15],d:-1},
+  fibrinogen:{k:['fibrinogen'],r:[200,400],d:-1},
+  rdw:{k:['rdw','red cell distribution'],r:[11.5,14.5],d:-1},
+  alkPhos:{k:['alkaline phosphatase','alk phos','alp'],r:[44,147],d:-1},
+  ggt:{k:['ggt','gamma-glutamyl','gamma glutamyl'],r:[0,45],d:-1},
+  hematocrit:{k:['hematocrit','hct'],r:[36,50],d:1},
+  freeT3:{k:['free t3','ft3','triiodothyronine'],r:[2.0,4.4],d:1},
+  freeT4:{k:['free t4','ft4','thyroxine'],r:[0.8,1.8],d:0},
+  igf1:{k:['igf-1','igf1','insulin-like growth factor'],r:[100,300],d:0},
+  cystC:{k:['cystatin c','cystatin'],r:[0.5,1.0],d:-1}
 };
 
 function parseBW(text){
@@ -578,7 +603,7 @@ function scoreMK(v,m){
 }
 
 function calcStats(bw,bioAge){
-  bioAge=bioAge!=null?bioAge:estBioAge(bw);
+  if(bioAge==null){const r=estBioAge(bw);bioAge=r.bioAge;}
   const lip=avg([scoreMK(bw.totalCholesterol,MK.totalCholesterol),scoreMK(bw.hdl,MK.hdl),scoreMK(bw.ldl,MK.ldl),scoreMK(bw.triglycerides,MK.triglycerides)]);
   const met=avg([scoreMK(bw.glucose,MK.glucose),scoreMK(bw.a1c,MK.a1c),scoreMK(bw.insulin,MK.insulin)]);
   const kid=scoreMK(bw.egfr,MK.egfr);
@@ -602,9 +627,305 @@ function calcStats(bw,bioAge){
   return{attack:atk,defense:def,speed:spd,stamina:sta,regen:reg,rage:rag,bioAge};
 }
 
-function estBioAge(bw){
-  const sc=[];for(const k in bw){if(MK[k])sc.push(scoreMK(bw[k],MK[k]))}
-  return Math.round(80-avg(sc)*60);
+// BIOLOGICAL AGE ENGINE — research-based delta system
+// Each marker shifts bio age up or down from chrono age based on clinical cutoffs
+// Weights reflect predictive power from Levine PhenoAge, NHANES, and longevity studies
+// Returns {bioAge, breakdown:[{marker,value,delta,note}], chronoAge}
+function estBioAge(bw, inputChronoAge){
+  const ca = inputChronoAge || 40; // baseline if no chrono age given
+  const bd = []; // breakdown
+  let totalDelta = 0;
+  let totalWeight = 0;
+
+  function add(name, val, weight, ranges){
+    if(val == null) return;
+    for(const r of ranges){
+      if((r.lo==null||val>=r.lo) && (r.hi==null||val<r.hi)){
+        const wd = r.d * weight;
+        totalDelta += wd;
+        totalWeight += weight;
+        bd.push({marker:name, value:val, delta:r.d, wd:Math.round(wd*10)/10, note:r.n});
+        return;
+      }
+    }
+  }
+
+  // VO2 MAX — strongest longevity predictor (Mandsager et al., JAMA 2018)
+  // Elite fitness = biggest single bio age advantage
+  add('VO2 MAX', bw.vo2max, 3.5, [
+    {lo:55,hi:null,d:-7,n:'ELITE'},
+    {lo:47,hi:55,d:-4.5,n:'EXCELLENT'},
+    {lo:40,hi:47,d:-2,n:'GOOD'},
+    {lo:33,hi:40,d:0,n:'AVERAGE'},
+    {lo:25,hi:33,d:3,n:'BELOW AVG'},
+    {lo:null,hi:25,d:7,n:'POOR'}
+  ]);
+
+  // hs-CRP — inflammation (Ridker, NEJM; Levine PhenoAge component)
+  add('hs-CRP', bw.crp, 3.0, [
+    {lo:null,hi:0.3,d:-4,n:'OPTIMAL'},
+    {lo:0.3,hi:0.7,d:-2,n:'LOW'},
+    {lo:0.7,hi:1.0,d:-0.5,n:'NORMAL'},
+    {lo:1.0,hi:3.0,d:3,n:'ELEVATED'},
+    {lo:3.0,hi:null,d:7,n:'HIGH RISK'}
+  ]);
+
+  // HbA1c — glycemic aging (Levine PhenoAge; Zhang et al. Diabetologia)
+  add('HbA1c', bw.a1c, 2.8, [
+    {lo:null,hi:5.0,d:-3,n:'OPTIMAL'},
+    {lo:5.0,hi:5.3,d:-1.5,n:'EXCELLENT'},
+    {lo:5.3,hi:5.5,d:-0.5,n:'GOOD'},
+    {lo:5.5,hi:5.7,d:1,n:'NORMAL'},
+    {lo:5.7,hi:6.5,d:4,n:'PRE-DIABETIC'},
+    {lo:6.5,hi:null,d:9,n:'DIABETIC'}
+  ]);
+
+  // FASTING INSULIN — metabolic health (Facchini et al., JCEM)
+  add('INSULIN', bw.insulin, 2.5, [
+    {lo:null,hi:3,d:-3.5,n:'OPTIMAL'},
+    {lo:3,hi:5,d:-1.5,n:'EXCELLENT'},
+    {lo:5,hi:7,d:0,n:'NORMAL'},
+    {lo:7,hi:12,d:3,n:'ELEVATED'},
+    {lo:12,hi:null,d:7,n:'RESISTANT'}
+  ]);
+
+  // RESTING HEART RATE — cardiovascular fitness (Zhang et al., CMAJ)
+  add('RESTING HR', bw.restingHR, 2.5, [
+    {lo:null,hi:48,d:-4,n:'ATHLETE'},
+    {lo:48,hi:55,d:-2.5,n:'EXCELLENT'},
+    {lo:55,hi:65,d:-0.5,n:'GOOD'},
+    {lo:65,hi:75,d:1,n:'AVERAGE'},
+    {lo:75,hi:85,d:3,n:'ELEVATED'},
+    {lo:85,hi:null,d:6,n:'HIGH'}
+  ]);
+
+  // ApoB — #1 lipid marker for CVD (Sniderman et al., Lancet)
+  add('ApoB', bw.apoB, 2.2, [
+    {lo:null,hi:60,d:-3,n:'OPTIMAL'},
+    {lo:60,hi:80,d:-1.5,n:'EXCELLENT'},
+    {lo:80,hi:100,d:0,n:'NORMAL'},
+    {lo:100,hi:120,d:2,n:'BORDERLINE'},
+    {lo:120,hi:null,d:5,n:'HIGH RISK'}
+  ]);
+
+  // eGFR — kidney aging (Levine PhenoAge component)
+  add('eGFR', bw.egfr, 2.0, [
+    {lo:105,hi:null,d:-3,n:'OPTIMAL'},
+    {lo:90,hi:105,d:-0.5,n:'NORMAL'},
+    {lo:75,hi:90,d:2,n:'MILD DECLINE'},
+    {lo:60,hi:75,d:5,n:'MODERATE'},
+    {lo:null,hi:60,d:9,n:'IMPAIRED'}
+  ]);
+
+  // GLUCOSE — metabolic (Levine PhenoAge component)
+  add('GLUCOSE', bw.glucose, 1.8, [
+    {lo:null,hi:80,d:-2,n:'OPTIMAL'},
+    {lo:80,hi:90,d:-1,n:'EXCELLENT'},
+    {lo:90,hi:100,d:0,n:'NORMAL'},
+    {lo:100,hi:110,d:2,n:'IMPAIRED'},
+    {lo:110,hi:126,d:5,n:'PRE-DIABETIC'},
+    {lo:126,hi:null,d:9,n:'DIABETIC'}
+  ]);
+
+  // TESTOSTERONE — hormonal aging
+  add('TESTOSTERONE', bw.testosterone, 1.8, [
+    {lo:800,hi:null,d:-3,n:'OPTIMAL'},
+    {lo:600,hi:800,d:-1.5,n:'GOOD'},
+    {lo:400,hi:600,d:0,n:'AVERAGE'},
+    {lo:300,hi:400,d:2,n:'LOW-NORMAL'},
+    {lo:null,hi:300,d:5,n:'LOW'}
+  ]);
+
+  // HDL — cardiovascular protection
+  add('HDL', bw.hdl, 1.5, [
+    {lo:70,hi:null,d:-2.5,n:'OPTIMAL'},
+    {lo:55,hi:70,d:-1,n:'GOOD'},
+    {lo:40,hi:55,d:0,n:'NORMAL'},
+    {lo:null,hi:40,d:3.5,n:'LOW'}
+  ]);
+
+  // TRIGLYCERIDES — metabolic health
+  add('TRIGLYCERIDES', bw.triglycerides, 1.5, [
+    {lo:null,hi:70,d:-2,n:'OPTIMAL'},
+    {lo:70,hi:100,d:-1,n:'GOOD'},
+    {lo:100,hi:150,d:0,n:'NORMAL'},
+    {lo:150,hi:250,d:2.5,n:'ELEVATED'},
+    {lo:250,hi:null,d:5,n:'HIGH'}
+  ]);
+
+  // LDL
+  add('LDL', bw.ldl, 1.2, [
+    {lo:null,hi:70,d:-1.5,n:'OPTIMAL'},
+    {lo:70,hi:100,d:-0.5,n:'GOOD'},
+    {lo:100,hi:130,d:0.5,n:'BORDERLINE'},
+    {lo:130,hi:160,d:2,n:'ELEVATED'},
+    {lo:160,hi:null,d:4,n:'HIGH'}
+  ]);
+
+  // ALT — liver health (Levine PhenoAge includes similar)
+  add('ALT', bw.alt, 1.2, [
+    {lo:null,hi:20,d:-1.5,n:'OPTIMAL'},
+    {lo:20,hi:30,d:0,n:'NORMAL'},
+    {lo:30,hi:45,d:1.5,n:'ELEVATED'},
+    {lo:45,hi:null,d:3.5,n:'HIGH'}
+  ]);
+
+  // AST
+  add('AST', bw.ast, 1.0, [
+    {lo:null,hi:20,d:-1,n:'OPTIMAL'},
+    {lo:20,hi:30,d:0,n:'NORMAL'},
+    {lo:30,hi:45,d:1.5,n:'ELEVATED'},
+    {lo:45,hi:null,d:3,n:'HIGH'}
+  ]);
+
+  // VITAMIN D — immune & bone health
+  add('VITAMIN D', bw.vitaminD, 1.2, [
+    {lo:60,hi:null,d:-2,n:'OPTIMAL'},
+    {lo:40,hi:60,d:-0.5,n:'GOOD'},
+    {lo:30,hi:40,d:0,n:'ADEQUATE'},
+    {lo:20,hi:30,d:2,n:'LOW'},
+    {lo:null,hi:20,d:4,n:'DEFICIENT'}
+  ]);
+
+  // CORTISOL — stress aging
+  add('CORTISOL', bw.cortisol, 1.0, [
+    {lo:null,hi:10,d:-1,n:'LOW'},
+    {lo:10,hi:18,d:0,n:'NORMAL'},
+    {lo:18,hi:25,d:1.5,n:'ELEVATED'},
+    {lo:25,hi:null,d:4,n:'HIGH STRESS'}
+  ]);
+
+  // DHEA — aging hormone
+  add('DHEA', bw.dhea, 1.0, [
+    {lo:400,hi:null,d:-2,n:'YOUTHFUL'},
+    {lo:250,hi:400,d:-1,n:'GOOD'},
+    {lo:150,hi:250,d:0,n:'AVERAGE'},
+    {lo:null,hi:150,d:2,n:'LOW'}
+  ]);
+
+  // TSH — thyroid
+  add('TSH', bw.tsh, 1.0, [
+    {lo:0.5,hi:2.5,d:-1,n:'OPTIMAL'},
+    {lo:2.5,hi:4.0,d:0.5,n:'NORMAL'},
+    {lo:null,hi:0.5,d:2,n:'SUPPRESSED'},
+    {lo:4.0,hi:null,d:3,n:'ELEVATED'}
+  ]);
+
+  // Lp(a) — genetic CVD risk
+  add('Lp(a)', bw.lpa, 1.5, [
+    {lo:null,hi:14,d:-1,n:'LOW RISK'},
+    {lo:14,hi:30,d:0,n:'NORMAL'},
+    {lo:30,hi:50,d:2,n:'ELEVATED'},
+    {lo:50,hi:null,d:4,n:'HIGH RISK'}
+  ]);
+
+  // ALBUMIN — Levine PhenoAge component
+  add('ALBUMIN', bw.albumin, 1.5, [
+    {lo:4.5,hi:null,d:-2,n:'OPTIMAL'},
+    {lo:4.0,hi:4.5,d:-0.5,n:'GOOD'},
+    {lo:3.5,hi:4.0,d:1,n:'LOW-NORMAL'},
+    {lo:null,hi:3.5,d:4,n:'LOW'}
+  ]);
+
+  // HOMOCYSTEINE — cardiovascular & brain aging
+  add('HOMOCYSTEINE', bw.homocysteine, 1.5, [
+    {lo:null,hi:7,d:-2,n:'OPTIMAL'},
+    {lo:7,hi:10,d:-0.5,n:'GOOD'},
+    {lo:10,hi:15,d:1,n:'BORDERLINE'},
+    {lo:15,hi:null,d:4,n:'ELEVATED'}
+  ]);
+
+  // CYSTATIN C — superior kidney aging marker
+  add('CYSTATIN C', bw.cystC, 1.8, [
+    {lo:null,hi:0.7,d:-2.5,n:'OPTIMAL'},
+    {lo:0.7,hi:0.9,d:-0.5,n:'GOOD'},
+    {lo:0.9,hi:1.1,d:1.5,n:'BORDERLINE'},
+    {lo:1.1,hi:null,d:4,n:'ELEVATED'}
+  ]);
+
+  // FERRITIN — iron storage (U-shaped)
+  add('FERRITIN', bw.ferritin, 0.8, [
+    {lo:50,hi:150,d:-1,n:'OPTIMAL'},
+    {lo:30,hi:50,d:0,n:'LOW-NORMAL'},
+    {lo:150,hi:300,d:1,n:'HIGH-NORMAL'},
+    {lo:null,hi:30,d:2,n:'LOW'},
+    {lo:300,hi:null,d:3,n:'HIGH'}
+  ]);
+
+  // HEMOGLOBIN
+  add('HEMOGLOBIN', bw.hemoglobin, 0.8, [
+    {lo:14,hi:17,d:-1,n:'OPTIMAL'},
+    {lo:12,hi:14,d:0.5,n:'LOW-NORMAL'},
+    {lo:null,hi:12,d:3,n:'ANEMIC'},
+    {lo:17,hi:null,d:1,n:'HIGH'}
+  ]);
+
+  // WBC — immune aging (Levine PhenoAge component)
+  add('WBC', bw.wbc, 1.2, [
+    {lo:4.0,hi:6.0,d:-1,n:'OPTIMAL'},
+    {lo:6.0,hi:8.0,d:0,n:'NORMAL'},
+    {lo:8.0,hi:10.0,d:1.5,n:'ELEVATED'},
+    {lo:null,hi:4.0,d:2,n:'LOW'},
+    {lo:10.0,hi:null,d:3,n:'HIGH'}
+  ]);
+
+  // RDW — red cell distribution (Levine PhenoAge component)
+  add('RDW', bw.rdw, 1.5, [
+    {lo:null,hi:12.5,d:-1.5,n:'OPTIMAL'},
+    {lo:12.5,hi:13.5,d:0,n:'NORMAL'},
+    {lo:13.5,hi:14.5,d:1.5,n:'BORDERLINE'},
+    {lo:14.5,hi:null,d:4,n:'ELEVATED'}
+  ]);
+
+  // ALK PHOS — Levine PhenoAge component
+  add('ALK PHOS', bw.alkPhos, 1.2, [
+    {lo:null,hi:60,d:-1,n:'OPTIMAL'},
+    {lo:60,hi:90,d:0,n:'NORMAL'},
+    {lo:90,hi:120,d:1,n:'ELEVATED'},
+    {lo:120,hi:null,d:3,n:'HIGH'}
+  ]);
+
+  // GGT — liver/metabolic aging
+  add('GGT', bw.ggt, 1.0, [
+    {lo:null,hi:15,d:-1.5,n:'OPTIMAL'},
+    {lo:15,hi:30,d:0,n:'NORMAL'},
+    {lo:30,hi:50,d:1.5,n:'ELEVATED'},
+    {lo:50,hi:null,d:3.5,n:'HIGH'}
+  ]);
+
+  // IGF-1 — U-shaped (moderate is best for longevity)
+  add('IGF-1', bw.igf1, 0.8, [
+    {lo:120,hi:200,d:-1,n:'OPTIMAL'},
+    {lo:100,hi:120,d:0,n:'LOW-NORMAL'},
+    {lo:200,hi:300,d:0.5,n:'HIGH-NORMAL'},
+    {lo:null,hi:100,d:2,n:'LOW'},
+    {lo:300,hi:null,d:2,n:'ELEVATED'}
+  ]);
+
+  // INTERACTION PENALTIES — synergistic aging effects
+  if(bw.crp>1.0 && bw.glucose>100){ totalDelta+=2; bd.push({marker:'COMBO',value:0,delta:2,wd:2,note:'INFLAMED + HIGH GLUCOSE'}); }
+  if(bw.insulin>8 && bw.triglycerides>150){ totalDelta+=2; bd.push({marker:'COMBO',value:0,delta:2,wd:2,note:'INSULIN RESIST + HIGH TRIG'}); }
+  if(bw.vo2max && bw.vo2max<30 && bw.restingHR && bw.restingHR>72){ totalDelta+=2; bd.push({marker:'COMBO',value:0,delta:2,wd:2,note:'LOW FITNESS + HIGH HR'}); }
+  if(bw.a1c>5.7 && bw.insulin>8){ totalDelta+=1.5; bd.push({marker:'COMBO',value:0,delta:1.5,wd:1.5,note:'PRE-DIABETIC SYNDROME'}); }
+  if(bw.crp<0.5 && bw.vo2max>45 && bw.restingHR<55){ totalDelta-=2; bd.push({marker:'COMBO',value:0,delta:-2,wd:-2,note:'ELITE HEALTH SYNERGY'}); }
+
+  // Normalize: weighted average delta, then scale for game impact
+  let finalDelta;
+  if(totalWeight > 0){
+    finalDelta = totalDelta / totalWeight * Math.min(totalWeight, 8);
+  } else {
+    finalDelta = 0;
+  }
+
+  // Clamp final delta to ±25 years
+  finalDelta = clamp(finalDelta, -25, 25);
+
+  const bioAge = Math.round(clamp(ca + finalDelta, 12, 120));
+
+  // Sort breakdown by absolute impact
+  bd.sort((a,b) => Math.abs(b.wd) - Math.abs(a.wd));
+
+  return {bioAge, breakdown:bd, chronoAge:ca, delta:Math.round(finalDelta)};
 }
 
 const SPECIAL_INFO={
@@ -651,7 +972,10 @@ function doProcessBloodwork(){
     PD.bloodwork=parseBW(txt);
   }
   if(Object.keys(PD.bloodwork).length<3){document.getElementById('uploadError').textContent='NEED AT LEAST 3 MARKERS';return}
-  PD.bioAge=estBioAge(PD.bloodwork);PD.stats=calcStats(PD.bloodwork,PD.bioAge);PD.special=getPlayerSpecial(PD.stats);
+  const ageInput=parseInt(document.getElementById('chronoAge').value);
+  const bioResult=estBioAge(PD.bloodwork, ageInput||null);
+  PD.bioAge=bioResult.bioAge;PD.chronoAge=bioResult.chronoAge;PD.bioBreakdown=bioResult.breakdown;PD.bioDelta=bioResult.delta;
+  PD.stats=calcStats(PD.bloodwork,PD.bioAge);PD.special=getPlayerSpecial(PD.stats);
   showScreen('charScreen');
 }
 
@@ -659,7 +983,8 @@ function doProcessBloodwork(){
 document.addEventListener('keydown',function(e){
   if(e.key==='`'&&curScreen==='uploadScreen'){
     document.getElementById('fighterName').value='JAKE';
-    PD.bloodwork={totalCholesterol:195,hdl:62,ldl:118,triglycerides:88,glucose:86,a1c:5.1,insulin:4.2,egfr:112,crp:0.4,testosterone:680,tsh:1.9,hemoglobin:15.0,ast:22,alt:19,restingHR:56,vo2max:46,cortisol:14,vitaminD:52};
+    document.getElementById('chronoAge').value='41';
+    PD.bloodwork={totalCholesterol:195,hdl:62,ldl:118,triglycerides:88,glucose:86,a1c:5.2,insulin:2.8,egfr:112,crp:0.2,testosterone:867,tsh:1.9,hemoglobin:15.0,ast:22,alt:19,restingHR:45,vo2max:65,cortisol:14,vitaminD:52,apoB:78};
     document.getElementById('fileStatus').textContent='DEV DATA LOADED';
     document.getElementById('pasteArea').value='[SAMPLE DATA]';
   }
@@ -682,6 +1007,38 @@ function startPrefight(){
   document.getElementById('vsP2N').textContent=OD.name;
   document.getElementById('vsP1A').textContent='BIO AGE: '+PD.bioAge;
   document.getElementById('vsP2A').textContent='BIO AGE: '+OD.bioAge;
+  // Show delta
+  const p1d=PD.bioDelta||0;
+  document.getElementById('vsP1Delta').innerHTML=PD.chronoAge?'<span style="color:#888">CHRONO '+PD.chronoAge+'</span> <span style="color:'+(p1d<=0?'#00ff88':'#ff4444')+'">'+(p1d<=0?p1d:'+'+p1d)+' YRS</span>':'';
+  const p2d=OD.bioDelta||((OD.bioAge||30)-(OD.chronoAge||OD.bioAge||30));
+  document.getElementById('vsP2Delta').innerHTML=OD.chronoAge?'<span style="color:#888">CHRONO '+OD.chronoAge+'</span> <span style="color:'+(p2d<=0?'#00ff88':'#ff4444')+'">'+(p2d<=0?p2d:'+'+p2d)+' YRS</span>':'';
+  // Show bio age breakdown for player
+  const bbDiv=document.getElementById('bioBreakdown');
+  if(PD.bioBreakdown&&PD.bioBreakdown.length>0){
+    let h='<div style="font-size:8px;color:#00ffff;text-align:center;margin-bottom:4px">YOUR BIO AGE ANALYSIS</div>';
+    h+='<div style="display:flex;flex-wrap:wrap;gap:3px;justify-content:center">';
+    const top=PD.bioBreakdown.filter(b=>b.marker!=='COMBO').slice(0,8);
+    for(const b of top){
+      const col=b.delta<0?'#00ff88':b.delta>0?'#ff4444':'#888';
+      const sign=b.delta>0?'+':'';
+      h+='<div style="background:#111;border:1px solid '+col+';padding:3px 5px;font-size:7px;min-width:55px;text-align:center">';
+      h+='<div style="color:#ccc">'+b.marker+'</div>';
+      h+='<div style="color:'+col+';font-size:9px;font-weight:bold">'+sign+b.delta+' YRS</div>';
+      h+='<div style="color:#666">'+b.note+'</div></div>';
+    }
+    h+='</div>';
+    // Show combos
+    const combos=PD.bioBreakdown.filter(b=>b.marker==='COMBO');
+    if(combos.length>0){
+      h+='<div style="text-align:center;margin-top:3px">';
+      for(const c of combos){
+        const cc=c.delta<0?'#00ff88':'#ff4444';
+        h+='<span style="font-size:7px;color:'+cc+'">'+(c.delta>0?'+':'')+c.delta+' '+c.note+'</span> ';
+      }
+      h+='</div>';
+    }
+    bbDiv.innerHTML=h;bbDiv.style.display='block';
+  } else { bbDiv.style.display='none'; }
   const sr=document.getElementById('specialReveal');
   sr.innerHTML=mkSpecBox(PD.special,'#00ff88')+mkSpecBox(OD.special,'#ff4444');
   document.getElementById('vsFightBtn').style.display='none';
