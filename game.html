@@ -6,6 +6,8 @@
 <title>BIOLOGICAL AGE DEATH MATCH</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#000;color:#00ff88;font-family:'Press Start 2P',monospace;overflow:hidden;width:100vw;height:100vh}
@@ -117,7 +119,7 @@ input[type="file"]{display:none}
 <div class="upload-section">
 <input type="text" id="fighterName" placeholder="ENTER FIGHTER NAME" maxlength="12" style="text-align:center">
 <input type="text" id="chronoAge" placeholder="YOUR AGE (FOR BIO AGE CALC)" maxlength="3" inputmode="numeric" pattern="[0-9]*" style="text-align:center">
-<label class="file-label" id="fileLabel"><input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.pdf,.txt">UPLOAD EXCEL / CSV / PDF</label>
+<label class="file-label" id="fileLabel"><input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.pdf,.txt,.docx">UPLOAD EXCEL / CSV / PDF / DOCX</label>
 <div id="fileStatus" style="font-size:9px;color:#00ff88;min-height:16px"></div>
 <div class="or-text">- OR PASTE BLOODWORK TEXT -</div>
 <textarea id="pasteArea" placeholder="PASTE LAB RESULTS HERE...&#10;e.g. Total Cholesterol: 195&#10;HDL: 62&#10;LDL: 118"></textarea>
@@ -541,8 +543,8 @@ function confirmAI(){
 const MK={
   totalCholesterol:{k:['cholesterol total','total cholesterol','total chol'],r:[125,200],d:-1,
     not:['hdl','ldl','non','ratio','vldl']},
-  hdl:{k:['hdl cholesterol','hdl-c','hdl'],r:[40,90],d:1,not:['ratio','non','vldl']},
-  ldl:{k:['ldl cholesterol','ldl-c','ldl'],r:[0,100],d:-1,not:['ratio','hdl','vldl']},
+  hdl:{k:['hdl cholesterol','hdl-c','hdl'],r:[40,90],d:1,not:['ratio','non','vldl','large','particle','small']},
+  ldl:{k:['ldl cholesterol','ldl-c','ldl'],r:[0,100],d:-1,not:['ratio','hdl','vldl','small','particle','large','pattern','peak','size']},
   triglycerides:{k:['triglycerides','trig'],r:[0,150],d:-1},
   apoB:{k:['apolipoprotein b','apo b','apob'],r:[0,90],d:-1},
   lpa:{k:['lipoprotein (a)','lipoprotein(a)','lp(a)','lpa'],r:[0,75],d:-1,not:['hdl','ldl','high-density','low-density']},
@@ -590,7 +592,98 @@ const MK={
 
 function parseBW(text){
   const bw={};
-  const lines=text.toLowerCase().replace(/,/g,' ').split(/[\n\r;|]+/).filter(l=>l.trim());
+  let lines=text.toLowerCase().replace(/,/g,' ').split(/[\n\r;|]+/).filter(l=>l.trim());
+
+  // === PRE-PROCESS: Strip prose-heavy recommendation sections (but keep STRENGTHS/AREAS data) ===
+  const stopWords=['recommendations','prepared ','not medical advice','disclaimer'];
+  let cutAt=lines.length;
+  for(let i=0;i<lines.length;i++){
+    const t=lines[i].trim();
+    if(stopWords.some(s=>t===s||t.startsWith(s))){cutAt=i;break}
+  }
+  lines=lines.slice(0,cutAt);
+
+  // === PRE-PROCESS: Expand slash-separated combined entries ===
+  // Handles two cases:
+  // 1. Labels on one line, values on another: "total chol / ldl / hdl" ... "169 / 88 / 72"
+  // 2. Labels and values on same line: "total chol / ldl / hdl 169 / 88 / 72"
+  // Result: "total chol 169", "ldl 88", "hdl 72"
+  const consumed=new Set();
+  const expanded=[];
+  for(let i=0;i<lines.length;i++){
+    if(consumed.has(i))continue;
+    const line=lines[i];
+    const slashParts=line.split('/').map(s=>s.trim());
+    if(slashParts.length>=4){
+      // Case 2: same-line combined - "total chol / ldl / hdl 169 / 88 / 72 <200 / <100 / >60 optimal"
+      // Detect pattern: N text parts followed by N numeric parts (total 2N or more slash segments)
+      const half=Math.floor(slashParts.length/2);
+      if(half>=2){
+        const firstHalf=slashParts.slice(0,half);
+        const secondHalf=slashParts.slice(half,half*2);
+        const labelsText=firstHalf.every(p=>/[a-z]/.test(p));
+        const valsNum=secondHalf.some(p=>/\d/.test(p));
+        if(labelsText && valsNum){
+          for(let k=0;k<half;k++) expanded.push(firstHalf[k]+' '+secondHalf[k]);
+          consumed.add(i);
+          continue;
+        }
+      }
+    }
+    if(slashParts.length>=2){
+      const labelsAreText=slashParts.every(p=>/[a-z]/.test(p));
+      if(labelsAreText){
+        // Case 1: look ahead up to 5 lines for matching value line
+        let matched=false;
+        for(let j=i+1;j<Math.min(i+6,lines.length);j++){
+          if(consumed.has(j))continue;
+          const nextParts=lines[j].split('/').map(s=>s.trim());
+          if(nextParts.length===slashParts.length && nextParts.some(p=>/\d/.test(p))){
+            for(let k=0;k<slashParts.length;k++) expanded.push(slashParts[k]+' '+nextParts[k]);
+            consumed.add(i);consumed.add(j);
+            matched=true;break;
+          }
+        }
+        if(!matched) expanded.push(line);
+        continue;
+      }
+    }
+    expanded.push(line);
+  }
+  lines=expanded;
+
+  // === PRE-PROCESS: Merge keyword-only lines with their next-line values ===
+  // Handles table formats where "VO2 Max" is on one line and "65.0 mL/kg/min" is on the next
+  const allKeywords=[];
+  for(const m of Object.keys(MK)) for(const k of MK[m].k) allKeywords.push(k);
+  const merged=[];
+  for(let i=0;i<lines.length;i++){
+    const line=lines[i];
+    const hasKW=allKeywords.some(k=>{
+      const idx=line.indexOf(k);
+      if(idx<0)return false;
+      const bc=idx>0?line[idx-1]:' ';
+      return !/[a-z]/.test(bc);
+    });
+    // Check for standalone numbers (not part of words like "b12", "a1c", "ft4")
+    const hasNum=/(?:^|[\s:=<>])(\d+\.?\d*)/.test(line);
+    if(hasKW && !hasNum){
+      // Look ahead up to 3 lines for a value line
+      let found=false;
+      for(let j=i+1;j<Math.min(i+4,lines.length);j++){
+        if(/(?:^|[\s:=<>])\d/.test(lines[j])){
+          merged.push(line+' '+lines[j]);
+          i=j; // skip to after value line
+          found=true;break;
+        }
+      }
+      if(!found) merged.push(line);
+    }else{
+      merged.push(line);
+    }
+  }
+  lines=merged;
+
   const used=new Set();
 
   // Process markers by keyword specificity: longest keywords first so specific matches claim lines
@@ -600,7 +693,6 @@ function parseBW(text){
 
   for(const m of order){
     let found=false;
-    // Try keywords longest-first within each marker
     const keys=[...MK[m].k].sort((a,b)=>b.length-a.length);
     const excl=MK[m].not||[];
 
@@ -616,19 +708,15 @@ function parseBW(text){
         const idx=line.indexOf(key);
         if(idx<0)continue;
 
-        // Word boundary check: char before/after keyword must not be a-z
-        // This prevents "ast" matching inside "last", "fast", etc.
+        // Word boundary check: char before keyword must not be a-z
         const bc=idx>0?line[idx-1]:' ';
-        const ac=idx+key.length<line.length?line[idx+key.length]:' ';
         if(/[a-z]/.test(bc))continue;
 
         // Get text after keyword, find first number preceded by whitespace/delimiter
-        // This avoids grabbing digits embedded in words like "ft4", "a1c", "b12"
         const after=line.substring(idx+key.length);
         const nm=after.match(/[\s:=]<?(\d+\.?\d*)/);
         if(nm){
           let v=parseFloat(nm[1]);
-          // Handle "<X" values (e.g. "<3.0"): use 40% of value as conservative estimate
           if(nm[0].includes('<'))v=v*0.4;
           if(!isNaN(v)&&v>0){bw[m]=v;used.add(li);found=true;break}
         }
@@ -999,14 +1087,62 @@ function getPlayerSpecial(st){
   if(st.attack>=70)return'BERSERKER';return'BLOOD_RAGE';
 }
 
+// ======== PDF TEXT EXTRACTION ========
+if(typeof pdfjsLib!=='undefined') pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+async function extractPDFText(data){
+  const pdf=await pdfjsLib.getDocument({data}).promise;
+  let allText='';
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const tc=await page.getTextContent();
+    // Group text items by y-position to preserve table rows
+    const rows={};
+    for(const item of tc.items){
+      const y=Math.round(item.transform[5]);
+      if(!rows[y])rows[y]=[];
+      rows[y].push({x:item.transform[4],text:item.str});
+    }
+    // Sort by y descending (top to bottom), then x ascending (left to right)
+    const sortedYs=Object.keys(rows).map(Number).sort((a,b)=>b-a);
+    for(const y of sortedYs){
+      const items=rows[y].sort((a,b)=>a.x-b.x);
+      allText+=items.map(it=>it.text).join(' ')+'\n';
+    }
+    allText+='\n';
+  }
+  return allText;
+}
+
 // ======== FILE INPUT ========
 document.getElementById('fileInput').addEventListener('change',function(e){
   const f=e.target.files[0];if(!f)return;
-  document.getElementById('fileStatus').textContent='LOADED: '+f.name;
+  document.getElementById('fileStatus').textContent='LOADING: '+f.name;
   document.getElementById('fileLabel').style.borderColor='#00ff88';
   if(f.name.match(/\.(xlsx|xls|csv)$/i)){
     const r=new FileReader();r.onload=function(ev){try{PD.bloodwork=parseXL(XLSX.read(ev.target.result,{type:'array'}));document.getElementById('fileStatus').textContent='PARSED: '+Object.keys(PD.bloodwork).length+' MARKERS'}catch(err){document.getElementById('uploadError').textContent='PARSE ERROR'}};r.readAsArrayBuffer(f);
-  }else{const r=new FileReader();r.onload=function(ev){PD.bloodwork=parseBW(ev.target.result);document.getElementById('fileStatus').textContent='PARSED: '+Object.keys(PD.bloodwork).length+' MARKERS'};r.readAsText(f)}
+  }else if(f.name.match(/\.pdf$/i)){
+    // PDF: use pdf.js to extract real text
+    const r=new FileReader();r.onload=async function(ev){
+      try{
+        const text=await extractPDFText(new Uint8Array(ev.target.result));
+        PD.bloodwork=parseBW(text);
+        document.getElementById('fileStatus').textContent='PARSED: '+Object.keys(PD.bloodwork).length+' MARKERS';
+      }catch(err){document.getElementById('uploadError').textContent='PDF PARSE ERROR: '+err.message}
+    };r.readAsArrayBuffer(f);
+  }else if(f.name.match(/\.docx$/i)){
+    // DOCX: use mammoth.js to extract raw text
+    const r=new FileReader();r.onload=async function(ev){
+      try{
+        const result=await mammoth.extractRawText({arrayBuffer:ev.target.result});
+        PD.bloodwork=parseBW(result.value);
+        document.getElementById('fileStatus').textContent='PARSED: '+Object.keys(PD.bloodwork).length+' MARKERS';
+      }catch(err){document.getElementById('uploadError').textContent='DOCX PARSE ERROR: '+err.message}
+    };r.readAsArrayBuffer(f);
+  }else{
+    // Plain text / other
+    const r=new FileReader();r.onload=function(ev){PD.bloodwork=parseBW(ev.target.result);document.getElementById('fileStatus').textContent='PARSED: '+Object.keys(PD.bloodwork).length+' MARKERS'};r.readAsText(f);
+  }
 });
 
 function doProcessBloodwork(){
