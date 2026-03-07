@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: bio-age-death-match
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
