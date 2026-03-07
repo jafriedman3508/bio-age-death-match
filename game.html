@@ -537,68 +537,100 @@ function confirmAI(){
 }
 
 // ======== BLOODWORK PARSER ========
+// Handles Quest, LabCorp, ExamOne, InsideTracker, Empire City, and pasted text formats
 const MK={
-  totalCholesterol:{k:['total cholesterol','total chol'],r:[125,200],d:-1},
-  hdl:{k:['hdl','hdl-c','hdl cholesterol'],r:[40,90],d:1},
-  ldl:{k:['ldl','ldl-c','ldl cholesterol'],r:[0,100],d:-1},
+  totalCholesterol:{k:['cholesterol total','total cholesterol','total chol'],r:[125,200],d:-1,
+    not:['hdl','ldl','non','ratio','vldl']},
+  hdl:{k:['hdl cholesterol','hdl-c','hdl'],r:[40,90],d:1,not:['ratio','non','vldl']},
+  ldl:{k:['ldl cholesterol','ldl-c','ldl'],r:[0,100],d:-1,not:['ratio','hdl','vldl']},
   triglycerides:{k:['triglycerides','trig'],r:[0,150],d:-1},
   apoB:{k:['apolipoprotein b','apo b','apob'],r:[0,90],d:-1},
-  lpa:{k:['lipoprotein','lp(a)','lpa'],r:[0,30],d:-1},
-  glucose:{k:['glucose','fasting glucose','blood sugar'],r:[65,100],d:-1},
-  a1c:{k:['a1c','hba1c','hemoglobin a1c','glycated'],r:[4.0,5.7],d:-1},
-  insulin:{k:['insulin','fasting insulin'],r:[2,6],d:-1},
+  lpa:{k:['lipoprotein (a)','lipoprotein(a)','lp(a)','lpa'],r:[0,75],d:-1,not:['hdl','ldl','high-density','low-density']},
+  glucose:{k:['blood glucose','fasting glucose','glucose'],r:[65,100],d:-1,not:['urine','hemoglobin','a1c']},
+  a1c:{k:['hemoglobin a1c','hba1c','a1c'],r:[4.0,5.7],d:-1},
+  insulin:{k:['fasting insulin','insulin'],r:[2,6],d:-1,not:['like growth','igf','resistance']},
   egfr:{k:['egfr','gfr','glomerular'],r:[90,120],d:1},
-  crp:{k:['crp','c-reactive','hs-crp','hscrp','high sensitivity'],r:[0,1.0],d:-1},
-  testosterone:{k:['testosterone','total testosterone'],r:[300,900],d:1},
-  tsh:{k:['tsh','thyroid stimulating'],r:[0.5,4.0],d:-1},
-  hemoglobin:{k:['hemoglobin','hgb'],r:[12,17],d:1},
-  ast:{k:['ast','aspartate','sgot'],r:[10,35],d:-1},
-  alt:{k:['alt','alanine','sgpt'],r:[7,35],d:-1},
-  restingHR:{k:['resting heart rate','resting hr','rhr','heart rate'],r:[40,80],d:-1},
-  vo2max:{k:['vo2max','vo2 max','vo2'],r:[20,60],d:1},
+  crp:{k:['hs-crp','hscrp','high sensitivity c-reactive','c-reactive protein','crp'],r:[0,1.0],d:-1},
+  testosterone:{k:['testosterone total','total testosterone','testosterone'],r:[300,900],d:1,
+    not:['free','bioavailable','shbg','sex hormone','binding']},
+  tsh:{k:['thyroid stimulating','tsh w/reflex','tsh'],r:[0.5,4.0],d:-1},
+  hemoglobin:{k:['hemoglobin','hgb'],r:[12,17],d:1,not:['a1c','hba1c','glycated']},
+  ast:{k:['aspartate aminotransferase','aspartate','sgot','ast'],r:[10,35],d:-1},
+  alt:{k:['alanine aminotransferase','alanine','sgpt','alt'],r:[7,35],d:-1},
+  restingHR:{k:['resting heart rate','resting hr','pulse reading','rhr'],r:[40,80],d:-1},
+  vo2max:{k:['vo2 max','vo2max','vo2'],r:[20,60],d:1},
   cortisol:{k:['cortisol'],r:[5,25],d:-1},
-  vitaminD:{k:['vitamin d','25-hydroxy','25(oh)'],r:[30,80],d:1},
-  dhea:{k:['dhea','dhea-s','dhea sulfate'],r:[100,500],d:1},
+  vitaminD:{k:['25-hydroxy','25(oh)','vitamin d'],r:[30,80],d:1},
+  dhea:{k:['dhea sulfate','dhea-s','dhea'],r:[100,500],d:1},
   ferritin:{k:['ferritin'],r:[30,200],d:0},
-  albumin:{k:['albumin'],r:[3.5,5.0],d:1},
-  wbc:{k:['wbc','white blood cell','white blood count','leukocyte'],r:[4.0,10.0],d:-1},
-  rbc:{k:['rbc','red blood cell','red blood count','erythrocyte'],r:[4.0,5.5],d:1},
-  platelets:{k:['platelets','platelet count','plt'],r:[150,400],d:0},
-  creatinine:{k:['creatinine','creat'],r:[0.6,1.2],d:-1},
-  bun:{k:['bun','blood urea nitrogen','urea nitrogen'],r:[7,20],d:-1},
+  albumin:{k:['albumin'],r:[3.5,5.0],d:1,not:['globulin ratio','creatinine','urine']},
+  wbc:{k:['white blood cell count','white blood cell','wbc'],r:[4.0,10.0],d:-1,not:['urine']},
+  rbc:{k:['red blood cell count','red blood cell','rbc'],r:[4.0,5.5],d:1,not:['urine']},
+  platelets:{k:['platelet count','platelets','plt'],r:[150,400],d:0},
+  creatinine:{k:['creatinine'],r:[0.6,1.2],d:-1,not:['ratio','clearance','urine','bun']},
+  bun:{k:['blood urea nitrogen','urea nitrogen','bun'],r:[7,20],d:-1,not:['ratio','creatinine']},
   uricAcid:{k:['uric acid','urate'],r:[3.0,7.0],d:-1},
   totalProtein:{k:['total protein','protein total'],r:[6.0,8.0],d:0},
-  bilirubin:{k:['bilirubin','total bilirubin'],r:[0.1,1.2],d:0},
-  iron:{k:['iron','serum iron'],r:[60,170],d:0},
-  b12:{k:['b12','vitamin b12','cobalamin'],r:[200,900],d:1},
+  bilirubin:{k:['total bilirubin','bilirubin total','bilirubin'],r:[0.1,1.2],d:0,not:['direct','indirect']},
+  iron:{k:['serum iron','iron'],r:[60,170],d:0,not:['binding','tibc','ferritin','saturation']},
+  b12:{k:['vitamin b12','b12','cobalamin'],r:[200,900],d:1},
   folate:{k:['folate','folic acid'],r:[3,20],d:1},
-  magnesium:{k:['magnesium','mg'],r:[1.7,2.2],d:1},
+  magnesium:{k:['magnesium'],r:[1.7,2.2],d:1},
   homocysteine:{k:['homocysteine'],r:[5,15],d:-1},
   fibrinogen:{k:['fibrinogen'],r:[200,400],d:-1},
-  rdw:{k:['rdw','red cell distribution'],r:[11.5,14.5],d:-1},
-  alkPhos:{k:['alkaline phosphatase','alk phos','alp'],r:[44,147],d:-1},
-  ggt:{k:['ggt','gamma-glutamyl','gamma glutamyl'],r:[0,45],d:-1},
+  rdw:{k:['red cell distribution','rdw'],r:[11.5,14.5],d:-1,not:['sd']},
+  alkPhos:{k:['alkaline phosphatase','alk phos'],r:[44,147],d:-1},
+  ggt:{k:['gamma glutamyl transpeptidase','gamma-glutamyl','gamma glutamyl','ggt'],r:[0,45],d:-1},
   hematocrit:{k:['hematocrit','hct'],r:[36,50],d:1},
   freeT3:{k:['free t3','ft3','triiodothyronine'],r:[2.0,4.4],d:1},
-  freeT4:{k:['free t4','ft4','thyroxine'],r:[0.8,1.8],d:0},
+  freeT4:{k:['free t4','ft4','thyroxine'],r:[0.8,1.8],d:0,not:['tsh']},
   igf1:{k:['igf-1','igf1','insulin-like growth factor'],r:[100,300],d:0},
   cystC:{k:['cystatin c','cystatin'],r:[0.5,1.0],d:-1}
 };
 
 function parseBW(text){
-  const bw={};const lines=text.toLowerCase().replace(/,/g,'').split(/[\n;|]/);
-  for(const m in MK){
-    for(const line of lines){
-      for(const key of MK[m].k){
+  const bw={};
+  const lines=text.toLowerCase().replace(/,/g,' ').split(/[\n\r;|]+/).filter(l=>l.trim());
+  const used=new Set();
+
+  // Process markers by keyword specificity: longest keywords first so specific matches claim lines
+  const order=Object.keys(MK).sort((a,b)=>{
+    return Math.max(...MK[b].k.map(k=>k.length))-Math.max(...MK[a].k.map(k=>k.length));
+  });
+
+  for(const m of order){
+    let found=false;
+    // Try keywords longest-first within each marker
+    const keys=[...MK[m].k].sort((a,b)=>b.length-a.length);
+    const excl=MK[m].not||[];
+
+    for(let li=0;li<lines.length;li++){
+      if(found)break;
+      if(used.has(li))continue;
+      const line=lines[li];
+
+      // Skip lines containing any exclusion keywords for this marker
+      if(excl.length>0&&excl.some(ex=>line.includes(ex)))continue;
+
+      for(const key of keys){
         const idx=line.indexOf(key);
-        if(idx>=0){
-          // Get text AFTER the keyword match — the result value comes right after the marker name
-          const after=line.substring(idx+key.length);
-          const nums=after.match(/[\d]+\.?\d*/g);
-          if(nums){
-            const v=parseFloat(nums[0]); // FIRST number after the keyword = the result
-            if(!isNaN(v)&&v>0){bw[m]=v;break} // break inner loop once found
-          }
+        if(idx<0)continue;
+
+        // Word boundary check: char before/after keyword must not be a-z
+        // This prevents "ast" matching inside "last", "fast", etc.
+        const bc=idx>0?line[idx-1]:' ';
+        const ac=idx+key.length<line.length?line[idx+key.length]:' ';
+        if(/[a-z]/.test(bc))continue;
+
+        // Get text after keyword, find first number preceded by whitespace/delimiter
+        // This avoids grabbing digits embedded in words like "ft4", "a1c", "b12"
+        const after=line.substring(idx+key.length);
+        const nm=after.match(/[\s:=]<?(\d+\.?\d*)/);
+        if(nm){
+          let v=parseFloat(nm[1]);
+          // Handle "<X" values (e.g. "<3.0"): use 40% of value as conservative estimate
+          if(nm[0].includes('<'))v=v*0.4;
+          if(!isNaN(v)&&v>0){bw[m]=v;used.add(li);found=true;break}
         }
       }
     }
@@ -999,7 +1031,7 @@ document.addEventListener('keydown',function(e){
   if(e.key==='`'&&curScreen==='uploadScreen'){
     document.getElementById('fighterName').value='JAKE';
     document.getElementById('chronoAge').value='41';
-    PD.bloodwork={totalCholesterol:195,hdl:62,ldl:118,triglycerides:88,glucose:86,a1c:5.2,insulin:2.8,egfr:112,crp:0.2,testosterone:867,tsh:1.9,hemoglobin:15.0,ast:22,alt:19,restingHR:45,vo2max:65,cortisol:14,vitaminD:52,apoB:78};
+    PD.bloodwork={totalCholesterol:192,hdl:76,ldl:106,triglycerides:34,glucose:84,a1c:5.2,egfr:113,crp:0.4,testosterone:867,tsh:0.87,hemoglobin:13.6,ast:22,alt:18,albumin:4.8,alkPhos:52,bilirubin:1.1,wbc:4.0,rbc:4.76,rdw:13.3,platelets:260,hematocrit:41.9,lpa:19,restingHR:45,vo2max:65};
     document.getElementById('fileStatus').textContent='DEV DATA LOADED';
     document.getElementById('pasteArea').value='[SAMPLE DATA]';
   }
