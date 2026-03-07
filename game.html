@@ -118,7 +118,7 @@ input[type="file"]{display:none}
 <div class="subtitle">YOUR REAL HEALTH DATA BECOMES YOUR FIGHTER STATS</div>
 <div class="upload-section">
 <input type="text" id="fighterName" placeholder="ENTER FIGHTER NAME" maxlength="12" style="text-align:center">
-<input type="text" id="chronoAge" placeholder="YOUR AGE (FOR BIO AGE CALC)" maxlength="3" inputmode="numeric" pattern="[0-9]*" style="text-align:center">
+<input type="text" id="chronoAge" placeholder="YOUR AGE" maxlength="3" inputmode="numeric" pattern="[0-9]*" style="text-align:center">
 <label class="file-label" id="fileLabel"><input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.pdf,.txt,.docx">UPLOAD EXCEL / CSV / PDF / DOCX</label>
 <div id="fileStatus" style="font-size:9px;color:#00ff88;min-height:16px"></div>
 <div class="or-text">- OR PASTE BLOODWORK TEXT -</div>
@@ -205,7 +205,7 @@ input[type="file"]{display:none}
 <script>
 // ======== GLOBALS ========
 let curScreen='titleScreen';
-let PD={name:'',bloodwork:null,stats:null,skinIndex:0,bioAge:30,special:'BLOOD_RAGE'};
+let PD={name:'',bloodwork:null,stats:null,skinIndex:0,age:30,traits:null,special:'BLOOD_RAGE'};
 let OD=null;
 let selAiId=null;
 let GS=null;
@@ -272,11 +272,11 @@ function handleMPMsg(msg){
       break;
     case 'joined':
       mpPlayerNum=msg.playerNum;
-      OD={name:msg.opponentData.name,stats:msg.opponentData.stats,skinIndex:msg.opponentData.skinIndex,bioAge:msg.opponentData.bioAge,chronoAge:msg.opponentData.chronoAge,bioDelta:msg.opponentData.bioDelta,special:msg.opponentData.special,isAI:false};
+      OD={name:msg.opponentData.name,stats:msg.opponentData.stats,skinIndex:msg.opponentData.skinIndex,age:msg.opponentData.age,traits:msg.opponentData.traits,special:msg.opponentData.special,isAI:false};
       startPrefight();
       break;
     case 'opponent_joined':
-      OD={name:msg.opponentData.name,stats:msg.opponentData.stats,skinIndex:msg.opponentData.skinIndex,bioAge:msg.opponentData.bioAge,chronoAge:msg.opponentData.chronoAge,bioDelta:msg.opponentData.bioDelta,special:msg.opponentData.special,isAI:false};
+      OD={name:msg.opponentData.name,stats:msg.opponentData.stats,skinIndex:msg.opponentData.skinIndex,age:msg.opponentData.age,traits:msg.opponentData.traits,special:msg.opponentData.special,isAI:false};
       document.getElementById('mpWaiting').textContent='OPPONENT FOUND!';
       document.getElementById('mpWaiting').style.color='#00ff88';
       document.getElementById('mpWaiting').classList.remove('blink');
@@ -311,7 +311,7 @@ function startMPHost(){
   document.getElementById('mpActions').style.display='none';
   document.getElementById('mpWaiting').style.display='none';
   mpConnect(function(){
-    mpSend({type:'create',playerData:{name:PD.name,stats:PD.stats,skinIndex:PD.skinIndex,bioAge:PD.bioAge,chronoAge:PD.chronoAge,bioDelta:PD.bioDelta,special:PD.special}});
+    mpSend({type:'create',playerData:{name:PD.name,stats:PD.stats,skinIndex:PD.skinIndex,age:PD.age,traits:PD.traits,special:PD.special}});
   });
 }
 function copyMPLink(){
@@ -462,7 +462,7 @@ function confirmChar(){
     document.getElementById('mpActions').style.display='none';
     document.getElementById('mpWaiting').style.display='none';
     mpConnect(function(){
-      mpSend({type:'join',roomCode:mpJoinCode,playerData:{name:PD.name,stats:PD.stats,skinIndex:PD.skinIndex,bioAge:PD.bioAge,chronoAge:PD.chronoAge,bioDelta:PD.bioDelta,special:PD.special}});
+      mpSend({type:'join',roomCode:mpJoinCode,playerData:{name:PD.name,stats:PD.stats,skinIndex:PD.skinIndex,age:PD.age,traits:PD.traits,special:PD.special}});
     });
   } else {
     showScreen('modeScreen');
@@ -471,40 +471,40 @@ function confirmChar(){
 
 // ======== AI OPPONENTS ========
 const AIOPS=[
-  {id:'abraham',name:'ABRAHAM',title:'THE PATRIARCH',bioAge:175,chronoAge:175,desc:'LIVED 175 YEARS.',difficulty:'HARD',
+  {id:'abraham',name:'ABRAHAM',title:'THE PATRIARCH',age:175,desc:'LIVED 175 YEARS.',difficulty:'HARD',
     bw:{totalCholesterol:280,hdl:35,ldl:210,triglycerides:200,glucose:115,a1c:6.8,insulin:18,egfr:45,crp:4.5,testosterone:180,tsh:5.5,hemoglobin:11.5,ast:45,alt:50,restingHR:78,vo2max:18,cortisol:28,vitaminD:15},
     ai:'tank',sp:'COVENANT',si:3},
-  {id:'bryan',name:'BRYAN',title:'THE BLUEPRINT',bioAge:18,chronoAge:47,desc:'BIO AGE 18. $2M/YEAR.',difficulty:'VERY HARD',
+  {id:'bryan',name:'BRYAN',title:'THE BLUEPRINT',age:47,desc:'$2M/YEAR ON HEALTH.',difficulty:'VERY HARD',
     bw:{totalCholesterol:158,hdl:85,ldl:62,triglycerides:40,apoB:55,lpa:8,glucose:72,a1c:4.8,insulin:2.0,egfr:120,crp:0.08,testosterone:750,tsh:1.5,hemoglobin:15.2,ast:18,alt:14,restingHR:42,vo2max:58,cortisol:10,vitaminD:65,dhea:450,ferritin:90},
     ai:'perfect',sp:'PROTOCOL',si:0},
-  {id:'yoda',name:'YODA',title:'THE ANCIENT MASTER',bioAge:900,chronoAge:900,desc:'900 YEARS OLD.',difficulty:'LEGENDARY',
+  {id:'yoda',name:'YODA',title:'THE ANCIENT MASTER',age:900,desc:'900 YEARS OLD.',difficulty:'LEGENDARY',
     bw:{totalCholesterol:300,hdl:25,ldl:240,triglycerides:250,glucose:130,a1c:7.2,insulin:25,egfr:30,crp:6.0,testosterone:50,tsh:8.0,hemoglobin:9.0,ast:65,alt:70,restingHR:90,vo2max:12,cortisol:35,vitaminD:8},
     ai:'yoda',sp:'FORCE_PUSH',si:3},
-  {id:'zeke',name:'ZEKE',title:'THE ROOKIE',bioAge:16,chronoAge:16,desc:'HEALTHY TEEN.',difficulty:'EASY',
+  {id:'zeke',name:'ZEKE',title:'THE ROOKIE',age:16,desc:'HEALTHY TEEN.',difficulty:'EASY',
     bw:{totalCholesterol:155,hdl:62,ldl:78,triglycerides:65,glucose:82,a1c:4.9,insulin:4.5,egfr:125,crp:0.3,testosterone:620,tsh:1.8,hemoglobin:14.8,ast:20,alt:16,restingHR:62,vo2max:45,cortisol:14,vitaminD:40},
     ai:'aggressive_simple',sp:'BLOOD_RAGE',si:1},
-  {id:'earl',name:'EARL',title:'THE GRANDPA',bioAge:82,chronoAge:85,desc:'NOTHING LEFT TO LOSE.',difficulty:'MEDIUM',
+  {id:'earl',name:'EARL',title:'THE GRANDPA',age:85,desc:'NOTHING LEFT TO LOSE.',difficulty:'MEDIUM',
     bw:{totalCholesterol:245,hdl:42,ldl:170,triglycerides:180,glucose:108,a1c:6.3,insulin:15,egfr:55,crp:3.8,testosterone:280,tsh:4.2,hemoglobin:12.0,ast:38,alt:42,restingHR:75,vo2max:22,cortisol:25,vitaminD:18},
     ai:'berserker',sp:'BACK_IN_MY_DAY',si:3},
-  {id:'ozzy',name:'OZZY',title:'THE UNKILLABLE',bioAge:90,chronoAge:77,desc:'SHOULD BE DEAD. ISN\'T.',difficulty:'MEDIUM',
+  {id:'ozzy',name:'OZZY',title:'THE UNKILLABLE',age:77,desc:'SHOULD BE DEAD. ISN\'T.',difficulty:'MEDIUM',
     bw:{totalCholesterol:260,hdl:38,ldl:190,triglycerides:170,glucose:105,a1c:6.1,insulin:14,egfr:60,crp:3.2,testosterone:350,tsh:3.8,hemoglobin:13.0,ast:55,alt:60,restingHR:80,vo2max:20,cortisol:30,vitaminD:12},
     ai:'chaos',sp:'BAT_BITE',si:2},
-  {id:'rasputin',name:'RASPUTIN',title:'THE UNDYING',bioAge:55,chronoAge:47,desc:'KILLED THREE TIMES.',difficulty:'HARD',
+  {id:'rasputin',name:'RASPUTIN',title:'THE UNDYING',age:47,desc:'KILLED THREE TIMES.',difficulty:'HARD',
     bw:{totalCholesterol:230,hdl:44,ldl:155,triglycerides:155,glucose:100,a1c:5.9,insulin:12,egfr:70,crp:2.8,testosterone:550,tsh:3.0,hemoglobin:15.8,ast:35,alt:32,restingHR:65,vo2max:30,cortisol:22,vitaminD:20},
     ai:'resilient',sp:'WONT_DIE',si:6},
-  {id:'joan',name:'JOAN',title:'THE MARTYR',bioAge:19,chronoAge:19,desc:'DIVINE FURY.',difficulty:'MEDIUM',
+  {id:'joan',name:'JOAN',title:'THE MARTYR',age:19,desc:'DIVINE FURY.',difficulty:'MEDIUM',
     bw:{totalCholesterol:165,hdl:58,ldl:90,triglycerides:75,glucose:85,a1c:5.0,insulin:5.0,egfr:118,crp:1.5,testosterone:55,tsh:1.6,hemoglobin:13.5,ast:22,alt:18,restingHR:68,vo2max:38,cortisol:20,vitaminD:35},
     ai:'aggressive_smart',sp:'DIVINE_LIGHT',si:1},
-  {id:'genghis',name:'GENGHIS',title:'THE CONQUEROR',bioAge:60,chronoAge:65,desc:'HALF THE WORLD.',difficulty:'HARD',
+  {id:'genghis',name:'GENGHIS',title:'THE CONQUEROR',age:65,desc:'HALF THE WORLD.',difficulty:'HARD',
     bw:{totalCholesterol:240,hdl:48,ldl:160,triglycerides:160,glucose:102,a1c:5.8,insulin:11,egfr:75,crp:3.5,testosterone:720,tsh:2.8,hemoglobin:16.0,ast:40,alt:38,restingHR:58,vo2max:40,cortisol:18,vitaminD:30},
     ai:'blitz',sp:'HORDE',si:5},
-  {id:'baby',name:'BABY',title:'THE NEWBORN',bioAge:0,chronoAge:0,desc:'ZERO ATTACK.',difficulty:'JOKE',
+  {id:'baby',name:'BABY',title:'THE NEWBORN',age:0,desc:'ZERO ATTACK.',difficulty:'JOKE',
     bw:{totalCholesterol:120,hdl:55,ldl:50,triglycerides:45,glucose:70,a1c:4.5,insulin:3.0,egfr:140,crp:0.1,testosterone:5,tsh:3.5,hemoglobin:16.5,ast:35,alt:30,restingHR:120,vo2max:10,cortisol:8,vitaminD:30},
     ai:'passive',sp:'STEM_CELLS',si:7},
-  {id:'cleopatra',name:'CLEOPATRA',title:'THE TACTICIAN',bioAge:36,chronoAge:39,desc:'READS YOU.',difficulty:'HARD',
+  {id:'cleopatra',name:'CLEOPATRA',title:'THE TACTICIAN',age:39,desc:'READS YOU.',difficulty:'HARD',
     bw:{totalCholesterol:190,hdl:62,ldl:110,triglycerides:90,glucose:88,a1c:5.3,insulin:6.0,egfr:100,crp:1.0,testosterone:48,tsh:2.0,hemoglobin:13.0,ast:24,alt:20,restingHR:65,vo2max:35,cortisol:15,vitaminD:45},
     ai:'adaptive',sp:'ASP_BITE',si:4},
-  {id:'keith',name:'KEITH',title:'CHAOS IMMORTAL',bioAge:95,chronoAge:82,desc:'UNPREDICTABLE.',difficulty:'MEDIUM',
+  {id:'keith',name:'KEITH',title:'CHAOS IMMORTAL',age:82,desc:'UNPREDICTABLE.',difficulty:'MEDIUM',
     bw:{totalCholesterol:255,hdl:40,ldl:185,triglycerides:165,glucose:100,a1c:6.0,insulin:13,egfr:58,crp:3.0,testosterone:320,tsh:4.0,hemoglobin:12.5,ast:50,alt:55,restingHR:78,vo2max:22,cortisol:24,vitaminD:14},
     ai:'chaos',sp:'SATISFACTION',si:2}
 ];
@@ -512,14 +512,18 @@ const AIOPS=[
 function buildAiGrid(){
   const g=document.getElementById('aiGrid');g.innerHTML='';
   AIOPS.forEach(ai=>{
-    const st=calcStats(ai.bw,ai.bioAge);
+    const st=calcStats(ai.bw);
+    const tr=assignTraits(ai.bw);
     const cd=document.createElement('div');cd.className='ai-card';
     cd.onclick=()=>{document.querySelectorAll('.ai-card').forEach(c=>c.classList.remove('selected'));cd.classList.add('selected');selAiId=ai.id;document.getElementById('aiConfirmBtn').style.display='inline-block';sfxSel()};
     const cv=document.createElement('canvas');cd.appendChild(cv);drawSmall(cv,ai.si,48);
     let h='<div class="ai-name">'+ai.name+'</div><div class="ai-title">'+ai.title+'</div>';
-    h+='<div class="ai-title">BIO:'+ai.bioAge+' CHR:'+ai.chronoAge+'</div>';
+    h+='<div class="ai-title">AGE: '+ai.age+'</div>';
     const dc=ai.difficulty==='VERY HARD'?'VERY':ai.difficulty;
     h+='<div class="ai-diff diff-'+dc+'">'+ai.difficulty+'</div>';
+    // Show trait summary
+    if(tr.strengths.length>0) h+='<div class="ai-title" style="color:#00ff88">'+tr.strengths.length+' STRENGTH'+(tr.strengths.length>1?'S':'')+'</div>';
+    if(tr.vulnerabilities.length>0) h+='<div class="ai-title" style="color:#ff4444">'+tr.vulnerabilities.length+' VULN'+(tr.vulnerabilities.length>1?'S':'')+'</div>';
     h+='<div class="stat-bars">';
     ['attack','defense','speed','stamina','regen','rage'].forEach(k=>{
       const c=k==='rage'?'#ff4444':k==='attack'?'#ff8800':'#00ff88';
@@ -534,7 +538,9 @@ function buildAiGrid(){
 
 function confirmAI(){
   const ai=AIOPS.find(a=>a.id===selAiId);if(!ai)return;
-  OD={name:ai.name,title:ai.title,bloodwork:ai.bw,stats:calcStats(ai.bw,ai.bioAge),skinIndex:ai.si,bioAge:ai.bioAge,chronoAge:ai.chronoAge,aiStyle:ai.ai,special:ai.sp,isAI:true,lives:ai.id==='rasputin'?3:1};
+  OD={name:ai.name,title:ai.title,bloodwork:ai.bw,stats:calcStats(ai.bw),skinIndex:ai.si,
+    age:ai.age,traits:assignTraits(ai.bw),aiStyle:ai.ai,special:ai.sp,isAI:true,
+    lives:ai.id==='rasputin'?3:1};
   startPrefight();
 }
 
@@ -737,8 +743,7 @@ function scoreMK(v,m){
   return clamp(1-Math.abs(v-(lo+hi)/2)/((hi-lo)/2),0,1);
 }
 
-function calcStats(bw,bioAge){
-  if(bioAge==null){const r=estBioAge(bw);bioAge=r.bioAge;}
+function calcStats(bw){
   const lip=avg([scoreMK(bw.totalCholesterol,MK.totalCholesterol),scoreMK(bw.hdl,MK.hdl),scoreMK(bw.ldl,MK.ldl),scoreMK(bw.triglycerides,MK.triglycerides)]);
   const met=avg([scoreMK(bw.glucose,MK.glucose),scoreMK(bw.a1c,MK.a1c),scoreMK(bw.insulin,MK.insulin)]);
   const kid=scoreMK(bw.egfr,MK.egfr);
@@ -759,310 +764,71 @@ function calcStats(bw,bioAge){
   atk=Math.round(clamp(atk*sc,5,100));def=Math.round(clamp(def*sc,5,100));
   spd=Math.round(clamp(spd*sc,5,100));sta=Math.round(clamp(sta*sc,5,100));
   reg=Math.round(clamp(reg*sc,5,100));rag=Math.round(clamp(rag*sc,5,100));
-  return{attack:atk,defense:def,speed:spd,stamina:sta,regen:reg,rage:rag,bioAge};
+  return{attack:atk,defense:def,speed:spd,stamina:sta,regen:reg,rage:rag};
 }
 
-// BIOLOGICAL AGE ENGINE — research-based delta system
-// Each marker shifts bio age up or down from chrono age based on clinical cutoffs
-// Weights reflect predictive power from Levine PhenoAge, NHANES, and longevity studies
-// Returns {bioAge, breakdown:[{marker,value,delta,note}], chronoAge}
-function estBioAge(bw, inputChronoAge){
-  const ca = inputChronoAge || 40; // baseline if no chrono age given
-  const bd = []; // breakdown
-  let totalDelta = 0;
-  let totalWeight = 0;
+// ======== TRAIT SYSTEM ========
+// Bloodwork determines STRENGTHS (buffs) and VULNERABILITIES (debuffs)
+// These are displayed on prefight and actively modify combat mechanics
+const TRAITS={
+  // --- STRENGTHS ---
+  IRON_BLOOD:{type:'strength',name:'IRON BLOOD',desc:'PRISTINE LIPIDS FORM AN INVISIBLE SHIELD',color:'#00ff88',
+    trigger:function(bw){return bw.hdl>60&&bw.ldl!=null&&bw.ldl<100&&bw.triglycerides!=null&&bw.triglycerides<100},
+    fx:{defenseBonus:15,blockReflect:0.4}},
+  METABOLIC_ENGINE:{type:'strength',name:'METABOLIC ENGINE',desc:'OPTIMIZED METABOLISM = ENDLESS ENERGY',color:'#00ffff',
+    trigger:function(bw){return bw.glucose<90&&bw.a1c!=null&&bw.a1c<5.3&&bw.insulin!=null&&bw.insulin<5},
+    fx:{staminaRegenMult:1.8,staminaCostMult:0.7}},
+  CARDIO_BEAST:{type:'strength',name:'CARDIO BEAST',desc:'ELITE CARDIOVASCULAR FITNESS = BLINDING SPEED',color:'#ffcc00',
+    trigger:function(bw){return bw.restingHR!=null&&bw.restingHR<55&&bw.vo2max!=null&&bw.vo2max>45},
+    fx:{speedBonus:12,jumpMult:1.3}},
+  HORMONE_SURGE:{type:'strength',name:'HORMONE SURGE',desc:'PEAK HORMONAL POWER FUELS DEVASTATING STRIKES',color:'#ff8800',
+    trigger:function(bw){return bw.testosterone!=null&&bw.testosterone>700&&(bw.cortisol==null||bw.cortisol<=20)},
+    fx:{attackBonus:12,critChance:0.15}},
+  CLEAN_FILTER:{type:'strength',name:'CLEAN FILTER',desc:'PRISTINE LIVER + KIDNEYS PURGE ALL TOXINS',color:'#44ff44',
+    trigger:function(bw){return bw.egfr!=null&&bw.egfr>100&&bw.alt!=null&&bw.alt<25&&bw.ast!=null&&bw.ast<25},
+    fx:{poisonResist:0.5,regenBonus:10}},
+  INFLAMMATION_ZERO:{type:'strength',name:'ZERO INFLAMMATION',desc:'NO SYSTEMIC INFLAMMATION. BODY RUNS CLEAN.',color:'#88ffff',
+    trigger:function(bw){return bw.crp!=null&&bw.crp<0.5},
+    fx:{clockSlowdown:0.15,stunResist:0.3}},
+  // --- VULNERABILITIES ---
+  SUGAR_CRASH:{type:'vulnerability',name:'SUGAR CRASH',desc:'DYSREGULATED BLOOD SUGAR = ENERGY SPIKES AND CRASHES',color:'#ff4444',
+    trigger:function(bw){return(bw.glucose!=null&&bw.glucose>100)||(bw.a1c!=null&&bw.a1c>5.7)||(bw.insulin!=null&&bw.insulin>10)},
+    fx:{staminaDrain:1.4,lowStamPenalty:true}},
+  INFLAMED:{type:'vulnerability',name:'INFLAMED',desc:'CHRONIC INFLAMMATION BURNS FROM THE INSIDE',color:'#ff4444',
+    trigger:function(bw){return bw.crp!=null&&bw.crp>2.0},
+    fx:{clockSpeedup:0.25,selfDmg:0.02}},
+  CLOGGED_PIPES:{type:'vulnerability',name:'CLOGGED PIPES',desc:'TERRIBLE LIPID PROFILE RESTRICTS MOVEMENT',color:'#ff8844',
+    trigger:function(bw){return(bw.ldl!=null&&bw.ldl>150)||(bw.triglycerides!=null&&bw.triglycerides>200)||(bw.hdl!=null&&bw.hdl<35)},
+    fx:{speedPenalty:10}},
+  LIVER_DAMAGE:{type:'vulnerability',name:'LIVER DAMAGE',desc:'COMPROMISED LIVER MEANS POOR RECOVERY',color:'#aa4444',
+    trigger:function(bw){return(bw.ast!=null&&bw.ast>40)||(bw.alt!=null&&bw.alt>40)},
+    fx:{regenMult:0.5,poisonVulnerable:1.5}},
+  HORMONE_CRASH:{type:'vulnerability',name:'HORMONE CRASH',desc:'LOW TESTOSTERONE OR HIGH CORTISOL SAPS POWER',color:'#cc6644',
+    trigger:function(bw){return(bw.testosterone!=null&&bw.testosterone<300)||(bw.cortisol!=null&&bw.cortisol>25)},
+    fx:{attackPenalty:10,cdSlowdown:0.6}},
+  KIDNEY_STRAIN:{type:'vulnerability',name:'KIDNEY STRAIN',desc:'FAILING KIDNEYS CAN\'T KEEP UP',color:'#ff6666',
+    trigger:function(bw){return bw.egfr!=null&&bw.egfr<60},
+    fx:{maxHPReduction:15,clockSpeedup:0.15}}
+};
 
-  function add(name, val, weight, ranges){
-    if(val == null) return;
-    for(const r of ranges){
-      if((r.lo==null||val>=r.lo) && (r.hi==null||val<r.hi)){
-        const wd = r.d * weight;
-        totalDelta += wd;
-        totalWeight += weight;
-        bd.push({marker:name, value:val, delta:r.d, wd:Math.round(wd*10)/10, note:r.n});
-        return;
-      }
-    }
+function assignTraits(bw){
+  const strengths=[],vulnerabilities=[];
+  for(const[id,trait]of Object.entries(TRAITS)){
+    try{if(trait.trigger(bw)){
+      if(trait.type==='strength')strengths.push(id);
+      else vulnerabilities.push(id);
+    }}catch(e){}
   }
-
-  // VO2 MAX — strongest longevity predictor (Mandsager et al., JAMA 2018)
-  // Elite fitness = biggest single bio age advantage
-  add('VO2 MAX', bw.vo2max, 3.5, [
-    {lo:55,hi:null,d:-7,n:'ELITE'},
-    {lo:47,hi:55,d:-4.5,n:'EXCELLENT'},
-    {lo:40,hi:47,d:-2,n:'GOOD'},
-    {lo:33,hi:40,d:0,n:'AVERAGE'},
-    {lo:25,hi:33,d:3,n:'BELOW AVG'},
-    {lo:null,hi:25,d:7,n:'POOR'}
-  ]);
-
-  // hs-CRP — inflammation (Ridker, NEJM; Levine PhenoAge component)
-  add('hs-CRP', bw.crp, 3.0, [
-    {lo:null,hi:0.3,d:-4,n:'OPTIMAL'},
-    {lo:0.3,hi:0.7,d:-2,n:'LOW'},
-    {lo:0.7,hi:1.0,d:-0.5,n:'NORMAL'},
-    {lo:1.0,hi:3.0,d:3,n:'ELEVATED'},
-    {lo:3.0,hi:null,d:7,n:'HIGH RISK'}
-  ]);
-
-  // HbA1c — glycemic aging (Levine PhenoAge; Zhang et al. Diabetologia)
-  add('HbA1c', bw.a1c, 2.8, [
-    {lo:null,hi:5.0,d:-3,n:'OPTIMAL'},
-    {lo:5.0,hi:5.3,d:-1.5,n:'EXCELLENT'},
-    {lo:5.3,hi:5.5,d:-0.5,n:'GOOD'},
-    {lo:5.5,hi:5.7,d:1,n:'NORMAL'},
-    {lo:5.7,hi:6.5,d:4,n:'PRE-DIABETIC'},
-    {lo:6.5,hi:null,d:9,n:'DIABETIC'}
-  ]);
-
-  // FASTING INSULIN — metabolic health (Facchini et al., JCEM)
-  add('INSULIN', bw.insulin, 2.5, [
-    {lo:null,hi:3,d:-3.5,n:'OPTIMAL'},
-    {lo:3,hi:5,d:-1.5,n:'EXCELLENT'},
-    {lo:5,hi:7,d:0,n:'NORMAL'},
-    {lo:7,hi:12,d:3,n:'ELEVATED'},
-    {lo:12,hi:null,d:7,n:'RESISTANT'}
-  ]);
-
-  // RESTING HEART RATE — cardiovascular fitness (Zhang et al., CMAJ)
-  add('RESTING HR', bw.restingHR, 2.5, [
-    {lo:null,hi:48,d:-4,n:'ATHLETE'},
-    {lo:48,hi:55,d:-2.5,n:'EXCELLENT'},
-    {lo:55,hi:65,d:-0.5,n:'GOOD'},
-    {lo:65,hi:75,d:1,n:'AVERAGE'},
-    {lo:75,hi:85,d:3,n:'ELEVATED'},
-    {lo:85,hi:null,d:6,n:'HIGH'}
-  ]);
-
-  // ApoB — #1 lipid marker for CVD (Sniderman et al., Lancet)
-  add('ApoB', bw.apoB, 2.2, [
-    {lo:null,hi:60,d:-3,n:'OPTIMAL'},
-    {lo:60,hi:80,d:-1.5,n:'EXCELLENT'},
-    {lo:80,hi:100,d:0,n:'NORMAL'},
-    {lo:100,hi:120,d:2,n:'BORDERLINE'},
-    {lo:120,hi:null,d:5,n:'HIGH RISK'}
-  ]);
-
-  // eGFR — kidney aging (Levine PhenoAge component)
-  add('eGFR', bw.egfr, 2.0, [
-    {lo:105,hi:null,d:-3,n:'OPTIMAL'},
-    {lo:90,hi:105,d:-0.5,n:'NORMAL'},
-    {lo:75,hi:90,d:2,n:'MILD DECLINE'},
-    {lo:60,hi:75,d:5,n:'MODERATE'},
-    {lo:null,hi:60,d:9,n:'IMPAIRED'}
-  ]);
-
-  // GLUCOSE — metabolic (Levine PhenoAge component)
-  add('GLUCOSE', bw.glucose, 1.8, [
-    {lo:null,hi:80,d:-2,n:'OPTIMAL'},
-    {lo:80,hi:90,d:-1,n:'EXCELLENT'},
-    {lo:90,hi:100,d:0,n:'NORMAL'},
-    {lo:100,hi:110,d:2,n:'IMPAIRED'},
-    {lo:110,hi:126,d:5,n:'PRE-DIABETIC'},
-    {lo:126,hi:null,d:9,n:'DIABETIC'}
-  ]);
-
-  // TESTOSTERONE — hormonal aging
-  add('TESTOSTERONE', bw.testosterone, 1.8, [
-    {lo:800,hi:null,d:-3,n:'OPTIMAL'},
-    {lo:600,hi:800,d:-1.5,n:'GOOD'},
-    {lo:400,hi:600,d:0,n:'AVERAGE'},
-    {lo:300,hi:400,d:2,n:'LOW-NORMAL'},
-    {lo:null,hi:300,d:5,n:'LOW'}
-  ]);
-
-  // HDL — cardiovascular protection
-  add('HDL', bw.hdl, 1.5, [
-    {lo:70,hi:null,d:-2.5,n:'OPTIMAL'},
-    {lo:55,hi:70,d:-1,n:'GOOD'},
-    {lo:40,hi:55,d:0,n:'NORMAL'},
-    {lo:null,hi:40,d:3.5,n:'LOW'}
-  ]);
-
-  // TRIGLYCERIDES — metabolic health
-  add('TRIGLYCERIDES', bw.triglycerides, 1.5, [
-    {lo:null,hi:70,d:-2,n:'OPTIMAL'},
-    {lo:70,hi:100,d:-1,n:'GOOD'},
-    {lo:100,hi:150,d:0,n:'NORMAL'},
-    {lo:150,hi:250,d:2.5,n:'ELEVATED'},
-    {lo:250,hi:null,d:5,n:'HIGH'}
-  ]);
-
-  // LDL
-  add('LDL', bw.ldl, 1.2, [
-    {lo:null,hi:70,d:-1.5,n:'OPTIMAL'},
-    {lo:70,hi:100,d:-0.5,n:'GOOD'},
-    {lo:100,hi:130,d:0.5,n:'BORDERLINE'},
-    {lo:130,hi:160,d:2,n:'ELEVATED'},
-    {lo:160,hi:null,d:4,n:'HIGH'}
-  ]);
-
-  // ALT — liver health (Levine PhenoAge includes similar)
-  add('ALT', bw.alt, 1.2, [
-    {lo:null,hi:20,d:-1.5,n:'OPTIMAL'},
-    {lo:20,hi:30,d:0,n:'NORMAL'},
-    {lo:30,hi:45,d:1.5,n:'ELEVATED'},
-    {lo:45,hi:null,d:3.5,n:'HIGH'}
-  ]);
-
-  // AST
-  add('AST', bw.ast, 1.0, [
-    {lo:null,hi:20,d:-1,n:'OPTIMAL'},
-    {lo:20,hi:30,d:0,n:'NORMAL'},
-    {lo:30,hi:45,d:1.5,n:'ELEVATED'},
-    {lo:45,hi:null,d:3,n:'HIGH'}
-  ]);
-
-  // VITAMIN D — immune & bone health
-  add('VITAMIN D', bw.vitaminD, 1.2, [
-    {lo:60,hi:null,d:-2,n:'OPTIMAL'},
-    {lo:40,hi:60,d:-0.5,n:'GOOD'},
-    {lo:30,hi:40,d:0,n:'ADEQUATE'},
-    {lo:20,hi:30,d:2,n:'LOW'},
-    {lo:null,hi:20,d:4,n:'DEFICIENT'}
-  ]);
-
-  // CORTISOL — stress aging
-  add('CORTISOL', bw.cortisol, 1.0, [
-    {lo:null,hi:10,d:-1,n:'LOW'},
-    {lo:10,hi:18,d:0,n:'NORMAL'},
-    {lo:18,hi:25,d:1.5,n:'ELEVATED'},
-    {lo:25,hi:null,d:4,n:'HIGH STRESS'}
-  ]);
-
-  // DHEA — aging hormone
-  add('DHEA', bw.dhea, 1.0, [
-    {lo:400,hi:null,d:-2,n:'YOUTHFUL'},
-    {lo:250,hi:400,d:-1,n:'GOOD'},
-    {lo:150,hi:250,d:0,n:'AVERAGE'},
-    {lo:null,hi:150,d:2,n:'LOW'}
-  ]);
-
-  // TSH — thyroid
-  add('TSH', bw.tsh, 1.0, [
-    {lo:0.5,hi:2.5,d:-1,n:'OPTIMAL'},
-    {lo:2.5,hi:4.0,d:0.5,n:'NORMAL'},
-    {lo:null,hi:0.5,d:2,n:'SUPPRESSED'},
-    {lo:4.0,hi:null,d:3,n:'ELEVATED'}
-  ]);
-
-  // Lp(a) — genetic CVD risk
-  add('Lp(a)', bw.lpa, 1.5, [
-    {lo:null,hi:14,d:-1,n:'LOW RISK'},
-    {lo:14,hi:30,d:0,n:'NORMAL'},
-    {lo:30,hi:50,d:2,n:'ELEVATED'},
-    {lo:50,hi:null,d:4,n:'HIGH RISK'}
-  ]);
-
-  // ALBUMIN — Levine PhenoAge component
-  add('ALBUMIN', bw.albumin, 1.5, [
-    {lo:4.5,hi:null,d:-2,n:'OPTIMAL'},
-    {lo:4.0,hi:4.5,d:-0.5,n:'GOOD'},
-    {lo:3.5,hi:4.0,d:1,n:'LOW-NORMAL'},
-    {lo:null,hi:3.5,d:4,n:'LOW'}
-  ]);
-
-  // HOMOCYSTEINE — cardiovascular & brain aging
-  add('HOMOCYSTEINE', bw.homocysteine, 1.5, [
-    {lo:null,hi:7,d:-2,n:'OPTIMAL'},
-    {lo:7,hi:10,d:-0.5,n:'GOOD'},
-    {lo:10,hi:15,d:1,n:'BORDERLINE'},
-    {lo:15,hi:null,d:4,n:'ELEVATED'}
-  ]);
-
-  // CYSTATIN C — superior kidney aging marker
-  add('CYSTATIN C', bw.cystC, 1.8, [
-    {lo:null,hi:0.7,d:-2.5,n:'OPTIMAL'},
-    {lo:0.7,hi:0.9,d:-0.5,n:'GOOD'},
-    {lo:0.9,hi:1.1,d:1.5,n:'BORDERLINE'},
-    {lo:1.1,hi:null,d:4,n:'ELEVATED'}
-  ]);
-
-  // FERRITIN — iron storage (U-shaped)
-  add('FERRITIN', bw.ferritin, 0.8, [
-    {lo:50,hi:150,d:-1,n:'OPTIMAL'},
-    {lo:30,hi:50,d:0,n:'LOW-NORMAL'},
-    {lo:150,hi:300,d:1,n:'HIGH-NORMAL'},
-    {lo:null,hi:30,d:2,n:'LOW'},
-    {lo:300,hi:null,d:3,n:'HIGH'}
-  ]);
-
-  // HEMOGLOBIN
-  add('HEMOGLOBIN', bw.hemoglobin, 0.8, [
-    {lo:14,hi:17,d:-1,n:'OPTIMAL'},
-    {lo:12,hi:14,d:0.5,n:'LOW-NORMAL'},
-    {lo:null,hi:12,d:3,n:'ANEMIC'},
-    {lo:17,hi:null,d:1,n:'HIGH'}
-  ]);
-
-  // WBC — immune aging (Levine PhenoAge component)
-  add('WBC', bw.wbc, 1.2, [
-    {lo:4.0,hi:6.0,d:-1,n:'OPTIMAL'},
-    {lo:6.0,hi:8.0,d:0,n:'NORMAL'},
-    {lo:8.0,hi:10.0,d:1.5,n:'ELEVATED'},
-    {lo:null,hi:4.0,d:2,n:'LOW'},
-    {lo:10.0,hi:null,d:3,n:'HIGH'}
-  ]);
-
-  // RDW — red cell distribution (Levine PhenoAge component)
-  add('RDW', bw.rdw, 1.5, [
-    {lo:null,hi:12.5,d:-1.5,n:'OPTIMAL'},
-    {lo:12.5,hi:13.5,d:0,n:'NORMAL'},
-    {lo:13.5,hi:14.5,d:1.5,n:'BORDERLINE'},
-    {lo:14.5,hi:null,d:4,n:'ELEVATED'}
-  ]);
-
-  // ALK PHOS — Levine PhenoAge component
-  add('ALK PHOS', bw.alkPhos, 1.2, [
-    {lo:null,hi:60,d:-1,n:'OPTIMAL'},
-    {lo:60,hi:90,d:0,n:'NORMAL'},
-    {lo:90,hi:120,d:1,n:'ELEVATED'},
-    {lo:120,hi:null,d:3,n:'HIGH'}
-  ]);
-
-  // GGT — liver/metabolic aging
-  add('GGT', bw.ggt, 1.0, [
-    {lo:null,hi:15,d:-1.5,n:'OPTIMAL'},
-    {lo:15,hi:30,d:0,n:'NORMAL'},
-    {lo:30,hi:50,d:1.5,n:'ELEVATED'},
-    {lo:50,hi:null,d:3.5,n:'HIGH'}
-  ]);
-
-  // IGF-1 — U-shaped (moderate is best for longevity)
-  add('IGF-1', bw.igf1, 0.8, [
-    {lo:120,hi:200,d:-1,n:'OPTIMAL'},
-    {lo:100,hi:120,d:0,n:'LOW-NORMAL'},
-    {lo:200,hi:300,d:0.5,n:'HIGH-NORMAL'},
-    {lo:null,hi:100,d:2,n:'LOW'},
-    {lo:300,hi:null,d:2,n:'ELEVATED'}
-  ]);
-
-  // INTERACTION PENALTIES — synergistic aging effects
-  if(bw.crp>1.0 && bw.glucose>100){ totalDelta+=2; bd.push({marker:'COMBO',value:0,delta:2,wd:2,note:'INFLAMED + HIGH GLUCOSE'}); }
-  if(bw.insulin>8 && bw.triglycerides>150){ totalDelta+=2; bd.push({marker:'COMBO',value:0,delta:2,wd:2,note:'INSULIN RESIST + HIGH TRIG'}); }
-  if(bw.vo2max && bw.vo2max<30 && bw.restingHR && bw.restingHR>72){ totalDelta+=2; bd.push({marker:'COMBO',value:0,delta:2,wd:2,note:'LOW FITNESS + HIGH HR'}); }
-  if(bw.a1c>5.7 && bw.insulin>8){ totalDelta+=1.5; bd.push({marker:'COMBO',value:0,delta:1.5,wd:1.5,note:'PRE-DIABETIC SYNDROME'}); }
-  if(bw.crp<0.5 && bw.vo2max>45 && bw.restingHR<55){ totalDelta-=2; bd.push({marker:'COMBO',value:0,delta:-2,wd:-2,note:'ELITE HEALTH SYNERGY'}); }
-
-  // Normalize: weighted average delta, then scale for game impact
-  let finalDelta;
-  if(totalWeight > 0){
-    finalDelta = totalDelta / totalWeight * Math.min(totalWeight, 8);
-  } else {
-    finalDelta = 0;
-  }
-
-  // Clamp final delta to ±25 years
-  finalDelta = clamp(finalDelta, -25, 25);
-
-  const bioAge = Math.round(clamp(ca + finalDelta, 12, 120));
-
-  // Sort breakdown by absolute impact
-  bd.sort((a,b) => Math.abs(b.wd) - Math.abs(a.wd));
-
-  return {bioAge, breakdown:bd, chronoAge:ca, delta:Math.round(finalDelta)};
+  return{strengths:strengths.slice(0,3),vulnerabilities:vulnerabilities.slice(0,3),
+    all:[...strengths.slice(0,3),...vulnerabilities.slice(0,3)]};
 }
 
+// helper: check if fighter has trait
+function hasTrait(f,id){return f.traits&&(f.traits.strengths.includes(id)||f.traits.vulnerabilities.includes(id))}
+function hasStr(f,id){return f.traits&&f.traits.strengths.includes(id)}
+function hasVuln(f,id){return f.traits&&f.traits.vulnerabilities.includes(id)}
+
+// estBioAge() removed — trait system above replaces it
 const SPECIAL_INFO={
   'BLOOD_RAGE':{desc:'HIGH INFLAMMATION MARKERS FUEL UNCONTROLLABLE FURY',why:'CRP / INFLAMMATION',fx:'MASSIVE ATTACK BOOST'},
   'IRON_WALL':{desc:'PRISTINE LIPID PANEL CREATES IMPENETRABLE DEFENSE',why:'HDL / LDL / CHOLESTEROL',fx:'HUGE DEFENSE BOOST'},
@@ -1081,10 +847,18 @@ const SPECIAL_INFO={
   'ASP_BITE':{desc:'CALCULATED BIOCHEMISTRY DELIVERS LETHAL VENOM',why:'METABOLIC PRECISION',fx:'HEAVY POISON'},
   'SATISFACTION':{desc:'CHAOS IN THE BLOODSTREAM CREATES UNPREDICTABLE POWER',why:'VOLATILE MARKERS',fx:'RANDOM STAT SHIFT'}
 };
-function getPlayerSpecial(st){
-  if(st.rage>=70)return'BLOOD_RAGE';if(st.defense>=70)return'IRON_WALL';
-  if(st.speed>=70)return'ADRENALINE';if(st.regen>=70)return'STEM_CELLS';
-  if(st.attack>=70)return'BERSERKER';return'BLOOD_RAGE';
+function getPlayerSpecial(bw){
+  // Score each marker by how exceptional it is — most dominant marker determines special
+  const c=[
+    {sp:'ADRENALINE', score:bw.vo2max!=null?Math.max(0,(bw.vo2max-35)/30):0},
+    {sp:'BERSERKER',  score:bw.testosterone!=null?Math.max(0,(bw.testosterone-500)/400):0},
+    {sp:'IRON_WALL',  score:bw.hdl!=null?Math.max(0,(bw.hdl-50)/40):0},
+    {sp:'STEM_CELLS', score:bw.a1c!=null?Math.max(0,(5.7-bw.a1c)/1.2):0},
+    {sp:'BLOOD_RAGE', score:bw.crp!=null?Math.max(0,(bw.crp-1.0)/5.0):0},
+    {sp:'BAT_BITE',   score:(bw.ast!=null&&bw.ast>35)||(bw.alt!=null&&bw.alt>35)?Math.max(0,((bw.ast||0)+(bw.alt||0)-60)/80):0}
+  ];
+  c.sort((a,b)=>b.score-a.score);
+  return c[0].score>0?c[0].sp:'BLOOD_RAGE';
 }
 
 // ======== PDF TEXT EXTRACTION ========
@@ -1156,9 +930,11 @@ function doProcessBloodwork(){
   }
   if(Object.keys(PD.bloodwork).length<3){document.getElementById('uploadError').textContent='NEED AT LEAST 3 MARKERS';return}
   const ageInput=parseInt(document.getElementById('chronoAge').value);
-  const bioResult=estBioAge(PD.bloodwork, ageInput||null);
-  PD.bioAge=bioResult.bioAge;PD.chronoAge=bioResult.chronoAge;PD.bioBreakdown=bioResult.breakdown;PD.bioDelta=bioResult.delta;
-  PD.stats=calcStats(PD.bloodwork,PD.bioAge);PD.special=getPlayerSpecial(PD.stats);
+  if(!ageInput||ageInput<1||ageInput>120){document.getElementById('uploadError').textContent='ENTER YOUR AGE (1-120)';return}
+  PD.age=ageInput;
+  PD.traits=assignTraits(PD.bloodwork);
+  PD.stats=calcStats(PD.bloodwork);
+  PD.special=getPlayerSpecial(PD.bloodwork);
   showScreen('charScreen');
 }
 
@@ -1167,7 +943,7 @@ document.addEventListener('keydown',function(e){
   if(e.key==='`'&&curScreen==='uploadScreen'){
     document.getElementById('fighterName').value='JAKE';
     document.getElementById('chronoAge').value='41';
-    PD.bloodwork={totalCholesterol:192,hdl:76,ldl:106,triglycerides:34,glucose:84,a1c:5.2,egfr:113,crp:0.4,testosterone:867,tsh:0.87,hemoglobin:13.6,ast:22,alt:18,albumin:4.8,alkPhos:52,bilirubin:1.1,wbc:4.0,rbc:4.76,rdw:13.3,platelets:260,hematocrit:41.9,lpa:19,restingHR:45,vo2max:65};
+    PD.bloodwork={totalCholesterol:192,hdl:76,ldl:106,triglycerides:34,glucose:84,a1c:5.2,insulin:1.2,egfr:113,crp:0.4,testosterone:867,tsh:0.87,hemoglobin:13.6,ast:22,alt:18,albumin:4.8,alkPhos:52,bilirubin:1.1,wbc:4.0,rbc:4.76,rdw:13.3,platelets:260,hematocrit:41.9,lpa:19,restingHR:45,vo2max:65};
     document.getElementById('fileStatus').textContent='DEV DATA LOADED';
     document.getElementById('pasteArea').value='[SAMPLE DATA]';
   }
@@ -1188,38 +964,38 @@ function startPrefight(){
   drawSmall(document.getElementById('vsP2C'),OD.skinIndex,96);
   document.getElementById('vsP1N').textContent=PD.name;
   document.getElementById('vsP2N').textContent=OD.name;
-  document.getElementById('vsP1A').textContent='BIO AGE: '+PD.bioAge;
-  document.getElementById('vsP2A').textContent='BIO AGE: '+OD.bioAge;
-  // Show delta
-  const p1d=PD.bioDelta||0;
-  document.getElementById('vsP1Delta').innerHTML=PD.chronoAge?'<span style="color:#888">CHRONO '+PD.chronoAge+'</span> <span style="color:'+(p1d<=0?'#00ff88':'#ff4444')+'">'+(p1d<=0?p1d:'+'+p1d)+' YRS</span>':'';
-  const p2d=OD.bioDelta||((OD.bioAge||30)-(OD.chronoAge||OD.bioAge||30));
-  document.getElementById('vsP2Delta').innerHTML=OD.chronoAge?'<span style="color:#888">CHRONO '+OD.chronoAge+'</span> <span style="color:'+(p2d<=0?'#00ff88':'#ff4444')+'">'+(p2d<=0?p2d:'+'+p2d)+' YRS</span>':'';
-  // Show bio age breakdown for player
+  document.getElementById('vsP1A').textContent='AGE: '+PD.age;
+  document.getElementById('vsP2A').textContent='AGE: '+OD.age;
+  // Show traits for each fighter
+  function mkTraitHTML(traits,label){
+    if(!traits)return'';
+    let h='<div style="display:flex;flex-wrap:wrap;gap:3px;justify-content:center">';
+    for(const id of traits.strengths){
+      const t=TRAITS[id];if(!t)continue;
+      h+='<div style="background:#111;border:1px solid '+t.color+';padding:3px 5px;font-size:7px;min-width:60px;text-align:center">';
+      h+='<div style="color:'+t.color+';font-size:8px;font-weight:bold">'+t.name+'</div>';
+      h+='<div style="color:#888;font-size:6px">'+t.desc+'</div></div>';
+    }
+    for(const id of traits.vulnerabilities){
+      const t=TRAITS[id];if(!t)continue;
+      h+='<div style="background:#111;border:1px solid '+t.color+';padding:3px 5px;font-size:7px;min-width:60px;text-align:center">';
+      h+='<div style="color:'+t.color+';font-size:8px;font-weight:bold">'+t.name+'</div>';
+      h+='<div style="color:#888;font-size:6px">'+t.desc+'</div></div>';
+    }
+    h+='</div>';return h;
+  }
+  const p1t=PD.traits||{strengths:[],vulnerabilities:[]};
+  const p2t=OD.traits||{strengths:[],vulnerabilities:[]};
+  document.getElementById('vsP1Delta').innerHTML=(p1t.strengths.length>0?'<span style="color:#00ff88">'+p1t.strengths.length+' STRENGTH'+(p1t.strengths.length>1?'S':'')+'</span>':'')+(p1t.vulnerabilities.length>0?' <span style="color:#ff4444">'+p1t.vulnerabilities.length+' VULN'+(p1t.vulnerabilities.length>1?'S':'')+'</span>':'');
+  document.getElementById('vsP2Delta').innerHTML=(p2t.strengths.length>0?'<span style="color:#00ff88">'+p2t.strengths.length+' STRENGTH'+(p2t.strengths.length>1?'S':'')+'</span>':'')+(p2t.vulnerabilities.length>0?' <span style="color:#ff4444">'+p2t.vulnerabilities.length+' VULN'+(p2t.vulnerabilities.length>1?'S':'')+'</span>':'');
+  // Show trait breakdown in bioBreakdown div
   const bbDiv=document.getElementById('bioBreakdown');
-  if(PD.bioBreakdown&&PD.bioBreakdown.length>0){
-    let h='<div style="font-size:8px;color:#00ffff;text-align:center;margin-bottom:4px">YOUR BIO AGE ANALYSIS</div>';
-    h+='<div style="display:flex;flex-wrap:wrap;gap:3px;justify-content:center">';
-    const top=PD.bioBreakdown.filter(b=>b.marker!=='COMBO').slice(0,8);
-    for(const b of top){
-      const col=b.delta<0?'#00ff88':b.delta>0?'#ff4444':'#888';
-      const sign=b.delta>0?'+':'';
-      h+='<div style="background:#111;border:1px solid '+col+';padding:3px 5px;font-size:7px;min-width:55px;text-align:center">';
-      h+='<div style="color:#ccc">'+b.marker+'</div>';
-      h+='<div style="color:'+col+';font-size:9px;font-weight:bold">'+sign+b.delta+' YRS</div>';
-      h+='<div style="color:#666">'+b.note+'</div></div>';
-    }
+  if(p1t.strengths.length>0||p1t.vulnerabilities.length>0||p2t.strengths.length>0||p2t.vulnerabilities.length>0){
+    let h='<div style="font-size:9px;color:#00ffff;text-align:center;margin-bottom:6px">BLOODWORK TRAITS</div>';
+    h+='<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">';
+    h+='<div style="flex:1;min-width:140px"><div style="text-align:center;color:#00ff88;font-size:8px;margin-bottom:4px">'+PD.name+'</div>'+mkTraitHTML(p1t,'P1')+'</div>';
+    h+='<div style="flex:1;min-width:140px"><div style="text-align:center;color:#ff4444;font-size:8px;margin-bottom:4px">'+OD.name+'</div>'+mkTraitHTML(p2t,'P2')+'</div>';
     h+='</div>';
-    // Show combos
-    const combos=PD.bioBreakdown.filter(b=>b.marker==='COMBO');
-    if(combos.length>0){
-      h+='<div style="text-align:center;margin-top:3px">';
-      for(const c of combos){
-        const cc=c.delta<0?'#00ff88':'#ff4444';
-        h+='<span style="font-size:7px;color:'+cc+'">'+(c.delta>0?'+':'')+c.delta+' '+c.note+'</span> ';
-      }
-      h+='</div>';
-    }
     bbDiv.innerHTML=h;bbDiv.style.display='block';
   } else { bbDiv.style.display='none'; }
   const sr=document.getElementById('specialReveal');
@@ -1239,10 +1015,16 @@ function startPrefight(){
 
 // ======== FIGHT ENGINE ========
 function mkFighter(data,x,fac){
-  const ba=data.bioAge||30;const yl=Math.max(5,100-ba);
+  const age=data.age||30;const yl=Math.max(5,100-age);
+  let tr=0.5+(age/100);let mhp=100;
+  const traits=data.traits||{strengths:[],vulnerabilities:[],all:[]};
+  // Apply trait modifiers to base values
+  if(traits.vulnerabilities.includes('KIDNEY_STRAIN')){mhp=85;tr*=1.15}
+  if(traits.strengths.includes('INFLAMMATION_ZERO'))tr*=0.85;
+  if(traits.vulnerabilities.includes('INFLAMED'))tr*=1.25;
   return{name:data.name,skin:SKINS[data.skinIndex],si:data.skinIndex,stats:{...data.stats},
-    x,y:0,vx:0,vy:0,fac,gnd:true,hp:100,mhp:100,stam:100,mstam:100,
-    yl,myl:yl,tr:0.5+(ba/100),ta:0,
+    x,y:0,vx:0,vy:0,fac,gnd:true,hp:mhp,mhp,stam:100,mstam:100,
+    yl,myl:yl,tr,ta:0,age,traits,
     act:'idle',at:0,bl:false,fr:0,
     sp:data.special||'BLOOD_RAGE',spReady:true,spCD:0,spAct:0,
     isAI:!!data.isAI,aiSt:data.aiStyle||'aggressive_smart',aiT:0,aiS:{},
@@ -1313,17 +1095,27 @@ function gLoop(){
 // ======== INPUT ========
 function doInput(gs){
   const k=gs.keys,p=gs.p1;if(p.stun>0)return;
-  const sp=3+p.stats.speed*0.05;p.bl=false;
+  let sp=3+p.stats.speed*0.05;
+  // Trait speed modifiers
+  if(hasStr(p,'CARDIO_BEAST'))sp+=0.12*sp;
+  if(hasVuln(p,'CLOGGED_PIPES'))sp-=0.1*sp;
+  // SUGAR_CRASH low-stamina penalty
+  if(hasVuln(p,'SUGAR_CRASH')&&p.stam<30)sp*=0.75;
+  p.bl=false;
   const opp=gs.p2;
   const movingAway=(k['ArrowLeft']&&opp.x<p.x)||(k['ArrowRight']&&opp.x>p.x);
   if(movingAway){p.bl=true;p.act='block';p.vx=(k['ArrowLeft']?-1:1)*sp*0.3}
   else if(k['ArrowLeft']){p.vx=-sp;p.act='walk'}
   else if(k['ArrowRight']){p.vx=sp;p.act='walk'}
   else{p.vx*=0.7;if(Math.abs(p.vx)<0.5){p.vx=0;if(p.gnd&&p.at<=0)p.act='idle'}}
-  if(k['KeyS']&&p.gnd){p.vy=-18;p.gnd=false}
-  if(k['KeyA']&&p.at<=0&&p.stam>=8){
+  // Jump (higher with CARDIO_BEAST)
+  const jumpPow=hasStr(p,'CARDIO_BEAST')?-23:-18;
+  if(k['KeyS']&&p.gnd){p.vy=jumpPow;p.gnd=false}
+  // Attack stamina costs (reduced by METABOLIC_ENGINE, increased by SUGAR_CRASH)
+  let stamMult=1;if(hasStr(p,'METABOLIC_ENGINE'))stamMult*=0.7;if(hasVuln(p,'SUGAR_CRASH'))stamMult*=1.4;
+  if(k['KeyA']&&p.at<=0&&p.stam>=8*stamMult){
     const r=Math.random();
-    if(r<0.5){p.act='punch';p.at=15;p.stam-=8}else{p.act='kick';p.at=20;p.stam-=12}
+    if(r<0.5){p.act='punch';p.at=15;p.stam-=8*stamMult}else{p.act='kick';p.at=20;p.stam-=12*stamMult}
     p.bl=false;p.aCnt++;
   }
   if(k['KeyD']&&p.spReady&&p.spCD<=0){doSpecial(gs,p,gs.p2);p.bl=false}
@@ -1332,17 +1124,23 @@ function doInput(gs){
 // ======== REMOTE INPUT (MP) ========
 function doRemoteInput(gs){
   const k=mpRemoteKeys,p=gs.p2;if(p.stun>0)return;
-  const sp=3+p.stats.speed*0.05;p.bl=false;
+  let sp=3+p.stats.speed*0.05;
+  if(hasStr(p,'CARDIO_BEAST'))sp+=0.12*sp;
+  if(hasVuln(p,'CLOGGED_PIPES'))sp-=0.1*sp;
+  if(hasVuln(p,'SUGAR_CRASH')&&p.stam<30)sp*=0.75;
+  p.bl=false;
   const opp=gs.p1;
   const movingAway=(k['ArrowLeft']&&opp.x<p.x)||(k['ArrowRight']&&opp.x>p.x);
   if(movingAway){p.bl=true;p.act='block';p.vx=(k['ArrowLeft']?-1:1)*sp*0.3}
   else if(k['ArrowLeft']){p.vx=-sp;p.act='walk'}
   else if(k['ArrowRight']){p.vx=sp;p.act='walk'}
   else{p.vx*=0.7;if(Math.abs(p.vx)<0.5){p.vx=0;if(p.gnd&&p.at<=0)p.act='idle'}}
-  if(k['KeyS']&&p.gnd){p.vy=-18;p.gnd=false}
-  if(k['KeyA']&&p.at<=0&&p.stam>=8){
+  const jumpPow=hasStr(p,'CARDIO_BEAST')?-23:-18;
+  if(k['KeyS']&&p.gnd){p.vy=jumpPow;p.gnd=false}
+  let stamMult=1;if(hasStr(p,'METABOLIC_ENGINE'))stamMult*=0.7;if(hasVuln(p,'SUGAR_CRASH'))stamMult*=1.4;
+  if(k['KeyA']&&p.at<=0&&p.stam>=8*stamMult){
     const r=Math.random();
-    if(r<0.5){p.act='punch';p.at=15;p.stam-=8}else{p.act='kick';p.at=20;p.stam-=12}
+    if(r<0.5){p.act='punch';p.at=15;p.stam-=8*stamMult}else{p.act='kick';p.at=20;p.stam-=12*stamMult}
     p.bl=false;p.aCnt++;
   }
   if(k['KeyD']&&p.spReady&&p.spCD<=0){doSpecial(gs,p,gs.p1);p.bl=false}
@@ -1352,7 +1150,10 @@ function doRemoteInput(gs){
 function doAI(gs,ai,tgt){
   if(ai.stun>0)return;ai.aiT-=gs.dt;if(ai.aiT>0)return;
   const dx=tgt.x-ai.x,dist=Math.abs(dx),dir=dx>0?1:-1;
-  const sp=2+ai.stats.speed*0.04;const r=Math.random();
+  let sp=2+ai.stats.speed*0.04;const r=Math.random();
+  if(hasStr(ai,'CARDIO_BEAST'))sp+=0.12*sp;
+  if(hasVuln(ai,'CLOGGED_PIPES'))sp-=0.1*sp;
+  if(hasVuln(ai,'SUGAR_CRASH')&&ai.stam<30)sp*=0.75;
   ai.bl=false;ai.aiT=0.1+r*0.15;
   // Yoda dodge
   if(ai.aiSt==='yoda'&&tgt.at>5&&tgt.at<15&&r<0.3){ai.x+=(r<0.15?-1:1)*250;ai.x=clamp(ai.x,40,vW()-40);ai.aiT=0.3;return}
@@ -1412,7 +1213,7 @@ function doSpecial(gs,f,tgt){
   switch(f.sp){
     case'COVENANT':f.inv=180;break;
     case'PROTOCOL':
-      const orig={...f.stats};for(let k in f.stats)if(typeof f.stats[k]==='number'&&k!=='bioAge')f.stats[k]=Math.min(100,f.stats[k]+20);
+      const orig={...f.stats};for(let k in f.stats)if(typeof f.stats[k]==='number')f.stats[k]=Math.min(100,f.stats[k]+20);
       setTimeout(()=>{if(GS)f.stats=orig},5000);break;
     case'FORCE_PUSH':
       if(Math.abs(tgt.x-f.x)<400){tgt.vx=(tgt.x>f.x?1:-1)*20;tgt.vy=-8;tgt.gnd=false;applyDmg(gs,tgt,f,20)}break;
@@ -1440,11 +1241,27 @@ function doSpecial(gs,f,tgt){
 
 // ======== PHYSICS ========
 function upF(gs,f){
-  f.fr++;if(f.at>0)f.at--;if(f.stun>0){f.stun--;f.act='hit';f.vx*=0.8}
-  if(f.spCD>0)f.spCD--;if(f.spCD<=0)f.spReady=true;if(f.spAct>0)f.spAct--;if(f.inv>0)f.inv--;
-  if(f.poi>0){f.poi--;f.hp-=f.poiD*gs.dt;if(f.fr%10===0)gs.parts.push({x:f.x+Math.random()*FW,y:f.y+Math.random()*FH,vx:(Math.random()-0.5)*2,vy:-2,l:20,c:'#44ff44'})}
-  f.stam=Math.min(f.mstam,f.stam+0.15+f.stats.regen*0.008);
-  f.hp=Math.min(f.mhp,f.hp+f.stats.regen*0.002);
+  f.fr++;if(f.at>0)f.at--;
+  // Stun (reduced by INFLAMMATION_ZERO)
+  if(f.stun>0){const stunDec=hasStr(f,'INFLAMMATION_ZERO')?1.4:1;f.stun-=stunDec;f.act='hit';f.vx*=0.8}
+  // Special cooldown (slower with HORMONE_CRASH)
+  if(f.spCD>0){const cdRate=hasVuln(f,'HORMONE_CRASH')?0.6:1;f.spCD-=cdRate}
+  if(f.spCD<=0)f.spReady=true;if(f.spAct>0)f.spAct--;if(f.inv>0)f.inv--;
+  // Poison (resisted by CLEAN_FILTER, amplified by LIVER_DAMAGE)
+  if(f.poi>0){f.poi--;
+    let poiMult=1;if(hasStr(f,'CLEAN_FILTER'))poiMult*=0.5;if(hasVuln(f,'LIVER_DAMAGE'))poiMult*=1.5;
+    f.hp-=f.poiD*gs.dt*poiMult;if(f.fr%10===0)gs.parts.push({x:f.x+Math.random()*FW,y:f.y+Math.random()*FH,vx:(Math.random()-0.5)*2,vy:-2,l:20,c:'#44ff44'})}
+  // Stamina regen (boosted by METABOLIC_ENGINE)
+  let stamRegen=0.15+f.stats.regen*0.008;
+  if(hasStr(f,'METABOLIC_ENGINE'))stamRegen*=1.8;
+  f.stam=Math.min(f.mstam,f.stam+stamRegen);
+  // HP regen (boosted by CLEAN_FILTER, halved by LIVER_DAMAGE)
+  let hpRegen=f.stats.regen*0.002;
+  if(hasStr(f,'CLEAN_FILTER'))hpRegen+=0.01;
+  if(hasVuln(f,'LIVER_DAMAGE'))hpRegen*=0.5;
+  f.hp=Math.min(f.mhp,f.hp+hpRegen);
+  // INFLAMED passive self-damage
+  if(hasVuln(f,'INFLAMED')){f.hp-=0.02;if(f.fr%30===0)gs.parts.push({x:f.x+FW/2,y:f.y+FH/2,vx:(Math.random()-0.5)*2,vy:-1,l:15,c:'#ff6600'})}
   if(!f.gnd)f.vy+=GRAV;
   f.x+=f.vx;f.y+=f.vy;
   const gnd=gs.gy-FH;if(f.y>=gnd){f.y=gnd;f.vy=0;f.gnd=true}
@@ -1460,9 +1277,27 @@ function tryHit(gs,a,d){
   const dx=a.fac>0?(d.x-a.x):(a.x-d.x);
   if(dx>0&&dx<reach&&Math.abs(a.y-d.y)<FH){
     if(d.inv>0)return;
-    if(d.bl){sfxBlock();d.vx=(d.x>a.x?1:-1)*3;mkDmg(gs,d.x+FW/2,d.y,'BLOCK','#00ffff');d.bCnt++;return}
-    const bd=a.act==='kick'?12:8;const am=0.5+a.stats.attack/100;const dm=1-d.stats.defense/200;
-    applyDmg(gs,d,a,bd*am*dm);d.hCnt++;
+    // IRON_BLOOD: block reflects chip damage back to attacker
+    if(d.bl){
+      sfxBlock();d.vx=(d.x>a.x?1:-1)*3;mkDmg(gs,d.x+FW/2,d.y,'BLOCK','#00ffff');d.bCnt++;
+      if(hasStr(d,'IRON_BLOOD')){const chipDmg=4*TRAITS.IRON_BLOOD.fx.blockReflect;applyDmg(gs,a,d,chipDmg);mkDmg(gs,a.x+FW/2,a.y-20,'REFLECT','#00ff88')}
+      // CLOGGED_PIPES: blocking makes you nearly immobile
+      if(hasVuln(d,'CLOGGED_PIPES'))d.vx*=0.1;
+      return;
+    }
+    let bd=a.act==='kick'?12:8;
+    // Attacker: HORMONE_SURGE/HORMONE_CRASH modify attack
+    let am=0.5+a.stats.attack/100;
+    if(hasStr(a,'HORMONE_SURGE'))am+=(TRAITS.HORMONE_SURGE.fx.attackBonus/100);
+    if(hasVuln(a,'HORMONE_CRASH'))am-=(TRAITS.HORMONE_CRASH.fx.attackPenalty/100);
+    // Defender: IRON_BLOOD defense bonus
+    let defStat=d.stats.defense;
+    if(hasStr(d,'IRON_BLOOD'))defStat+=TRAITS.IRON_BLOOD.fx.defenseBonus;
+    const dm=1-defStat/200;
+    let totalDmg=bd*am*dm;
+    // HORMONE_SURGE crit chance
+    if(hasStr(a,'HORMONE_SURGE')&&Math.random()<TRAITS.HORMONE_SURGE.fx.critChance){totalDmg*=1.8;mkDmg(gs,d.x+FW/2,d.y-30,'CRIT!','#ff8800')}
+    applyDmg(gs,d,a,totalDmg);d.hCnt++;
   }
 }
 function applyDmg(gs,t,s,d){
