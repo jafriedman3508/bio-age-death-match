@@ -587,7 +587,22 @@ const MK={
 
 function parseBW(text){
   const bw={};const lines=text.toLowerCase().replace(/,/g,'').split(/[\n;|]/);
-  for(const m in MK){for(const line of lines){for(const key of MK[m].k){if(line.includes(key)){const nums=line.match(/[\d]+\.?\d*/g);if(nums){const v=parseFloat(nums[nums.length-1]);if(!isNaN(v)&&v>0)bw[m]=v}}}}}
+  for(const m in MK){
+    for(const line of lines){
+      for(const key of MK[m].k){
+        const idx=line.indexOf(key);
+        if(idx>=0){
+          // Get text AFTER the keyword match — the result value comes right after the marker name
+          const after=line.substring(idx+key.length);
+          const nums=after.match(/[\d]+\.?\d*/g);
+          if(nums){
+            const v=parseFloat(nums[0]); // FIRST number after the keyword = the result
+            if(!isNaN(v)&&v>0){bw[m]=v;break} // break inner loop once found
+          }
+        }
+      }
+    }
+  }
   return bw;
 }
 
