@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BIOLOGICAL AGE DEATH MATCH</title>
+<meta name="description" content="Upload your real bloodwork. Fight your biology. A retro arcade fighting game where your health data becomes your fighter stats.">
+<meta property="og:title" content="BIOLOGICAL AGE DEATH MATCH">
+<meta property="og:description" content="Upload your real bloodwork. Fight your biology. Your cholesterol is your shield. Your testosterone is your sword.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://bio-age-death-match.onrender.com">
+<meta property="og:image" content="https://bio-age-death-match.onrender.com/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="BIOLOGICAL AGE DEATH MATCH">
+<meta name="twitter:description" content="Upload your real bloodwork. Fight your biology.">
+<meta name="twitter:image" content="https://bio-age-death-match.onrender.com/og-image.png">
+<meta name="theme-color" content="#0a0a12">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -1229,7 +1240,7 @@ function doProcessBloodwork(){
 // Dev shortcut ~ key
 document.addEventListener('keydown',function(e){
   if(e.key==='`'&&curScreen==='uploadScreen'){
-    document.getElementById('fighterName').value='JAKE';
+    document.getElementById('fighterName').value='PLAYER';
     document.getElementById('chronoAge').value='41';
     PD.bloodwork={totalCholesterol:192,hdl:76,ldl:106,triglycerides:34,glucose:84,a1c:5.2,insulin:1.2,egfr:113,crp:0.4,testosterone:867,tsh:0.87,hemoglobin:13.6,ast:22,alt:18,albumin:4.8,alkPhos:52,bilirubin:1.1,wbc:4.0,rbc:4.76,rdw:13.3,platelets:260,hematocrit:41.9,lpa:19,restingHR:45,vo2max:65};
     document.getElementById('fileStatus').textContent='DEV DATA LOADED';
