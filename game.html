@@ -418,7 +418,16 @@ function drawChar(ctx,sk,sz,fac,fr,act){
   // arms
   ctx.fillStyle=sk.skin;
   if(bl){ctx.fillRect((6+hx)*s,(13+bob)*s,4*s,8*s);ctx.fillRect((22+hx)*s,(13+bob)*s,4*s,8*s)}
-  else{ctx.fillRect((5+hx)*s,(14+bob)*s,4*s,7*s);ctx.fillRect((23+pu+hx)*s,(14+bob)*s,(4+pu/2)*s,4*s)}
+  else{
+    ctx.fillRect((5+hx)*s,(14+bob)*s,4*s,7*s); // back arm
+    if(pu>0){
+      // punch: extend arm forward + small fist
+      ctx.fillRect((23+hx)*s,(15+bob)*s,(4+pu)*s,3*s); // extended arm
+      ctx.fillRect((26+pu+hx)*s,(14+bob)*s,3*s,4*s); // fist
+    } else {
+      ctx.fillRect((23+hx)*s,(14+bob)*s,4*s,7*s); // resting arm
+    }
+  }
   // head
   ctx.fillStyle=sk.skin;ctx.fillRect((10+hx)*s,(3+bob)*s,12*s,10*s);
   // eyes
