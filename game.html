@@ -11,7 +11,7 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#000;color:#00ff88;font-family:'Press Start 2P',monospace;overflow:hidden;width:100vw;height:100vh}
-canvas{display:block}
+canvas{display:block;touch-action:none}
 .screen{position:absolute;top:0;left:0;width:100%;height:100%;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:10}
 .screen.active{display:flex}
 .crt{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;background:repeating-linear-gradient(0deg,rgba(0,0,0,0.15) 0px,rgba(0,0,0,0.15) 1px,transparent 1px,transparent 3px)}
@@ -101,6 +101,43 @@ input[type="file"]{display:none}
 .special-reveal .sp-why{font-size:7px;color:#888;margin-bottom:4px}
 .special-reveal .sp-desc{font-size:7px;color:#aaa;line-height:1.8;margin-bottom:4px}
 .special-reveal .sp-fx{font-size:8px;color:#ffcc00}
+/* Touch controls */
+#touchControls{display:none;position:fixed;bottom:0;left:0;width:100%;height:25vh;z-index:30;background:rgba(10,10,18,0.9);border-top:2px solid #333}
+.touch-left,.touch-right{position:absolute;bottom:0;height:100%;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;padding:10px}
+.touch-left{left:0;width:45%}.touch-right{right:0;width:45%;justify-content:flex-end}
+.touch-btn{background:rgba(0,255,136,0.12);border:2px solid rgba(0,255,136,0.5);color:#00ff88;font-family:'Press Start 2P',monospace;font-size:11px;padding:14px 18px;border-radius:6px;user-select:none;-webkit-user-select:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.touch-btn.pressed,.touch-btn:active{background:rgba(0,255,136,0.4);box-shadow:0 0 15px rgba(0,255,136,0.5)}
+.touch-atk{border-color:rgba(255,68,68,0.5);color:#ff4444;background:rgba(255,68,68,0.12)}
+.touch-atk.pressed,.touch-atk:active{background:rgba(255,68,68,0.4);box-shadow:0 0 15px rgba(255,68,68,0.5)}
+.touch-sp{border-color:rgba(255,204,0,0.5);color:#ffcc00;background:rgba(255,204,0,0.12)}
+.touch-sp.pressed,.touch-sp:active{background:rgba(255,204,0,0.4);box-shadow:0 0 15px rgba(255,204,0,0.5)}
+/* Fight ticker */
+#fightTicker{display:none;position:fixed;left:0;width:100%;height:24px;background:rgba(0,0,0,0.92);border-top:1px solid #222;z-index:25;overflow:hidden;font-family:'Press Start 2P',monospace;font-size:7px;color:#555;line-height:24px;padding:0 12px;white-space:nowrap}
+/* Fight announcer */
+.announcer-text{position:fixed;top:30%;left:50%;transform:translateX(-50%);z-index:35;pointer-events:none;font-family:'Press Start 2P',monospace;font-size:clamp(10px,2.5vw,18px);text-align:center;color:#ffcc00;text-shadow:0 0 15px #ffcc00,2px 2px 0 #000;opacity:0;animation:announceFade 2s forwards}
+@keyframes announceFade{0%{opacity:0;transform:translateX(-50%) scale(1.5)}15%{opacity:1;transform:translateX(-50%) scale(1)}80%{opacity:1}100%{opacity:0}}
+/* Stats explanation screen */
+.stats-content{max-width:600px;max-height:62vh;overflow-y:auto;padding:10px;width:90%}
+.stat-row{margin-bottom:10px}
+.stat-header{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.stat-label{font-size:9px;width:65px}
+.stat-bar-outer{flex:1;height:14px;background:#1a1a2e;border:1px solid #333;position:relative}
+.stat-bar-inner{height:100%}
+.stat-val{font-size:10px;width:30px;text-align:right}
+.stat-markers{margin-left:73px;font-size:7px;color:#666;line-height:2}
+.marker-good{color:#00ff88}.marker-bad{color:#ff4444}.marker-neutral{color:#888}
+.stat-traits{margin-top:12px;border-top:1px solid #333;padding-top:8px}
+/* Clock centerpiece */
+.clock-years{font-size:clamp(28px,6vw,52px);font-family:'Press Start 2P',monospace;animation:clockPulse 1.5s ease-in-out infinite alternate}
+@keyframes clockPulse{from{text-shadow:0 0 10px currentColor}to{text-shadow:0 0 30px currentColor,0 0 60px currentColor}}
+.clock-label{font-size:7px;color:#888;margin-top:2px}
+.clock-rate{font-size:8px;margin-top:4px}
+.clock-mods{font-size:7px;color:#666;line-height:1.8;margin-top:2px}
+/* Share button */
+.btn-share{border-color:#ff00ff;color:#ff00ff}
+.btn-share:hover{background:#ff00ff;color:#000;box-shadow:0 0 20px #ff00ff}
+/* Mobile grid */
+@media(max-width:600px){.char-grid{grid-template-columns:repeat(3,1fr)}.ai-grid{grid-template-columns:repeat(3,1fr)}}
 </style>
 </head>
 <body>
@@ -128,6 +165,13 @@ input[type="file"]{display:none}
 <div class="privacy">ALL DATA PROCESSED LOCALLY IN YOUR BROWSER.<br>NOTHING IS UPLOADED TO ANY SERVER.<br>YOUR HEALTH DATA NEVER LEAVES YOUR DEVICE.</div>
 </div>
 
+<div class="screen" id="statsScreen">
+<h2>YOUR BLOOD. YOUR FATE.</h2>
+<div class="subtitle">HOW YOUR BLOODWORK BECAME YOUR STATS</div>
+<div class="stats-content" id="statsContent"></div>
+<button class="btn btn-gold" onclick="showScreen('charScreen')">CHOOSE YOUR FIGHTER</button>
+</div>
+
 <div class="screen" id="charScreen">
 <h2>PICK YOUR CHARACTER SKIN</h2>
 <div class="subtitle">CHOOSE YOUR FIGHTER APPEARANCE</div>
@@ -140,6 +184,7 @@ input[type="file"]{display:none}
 <div class="mode-buttons">
 <button class="btn btn-cyan" onclick="startMPHost()">FIGHT A HUMAN</button>
 <button class="btn btn-red" onclick="showScreen('aiSelectScreen')">FIGHT AN AI</button>
+<button class="btn btn-gold" onclick="startCompare()">COMPARE STATS</button>
 </div>
 </div>
 
@@ -166,9 +211,9 @@ input[type="file"]{display:none}
 <div class="screen" id="prefightScreen">
 <div style="text-align:center">
 <div class="vs-fighters">
-<div class="vs-fighter"><canvas id="vsP1C" width="96" height="96"></canvas><div id="vsP1N" style="font-size:14px;color:#00ff88"></div><div id="vsP1A" style="font-size:10px;color:#888"></div><div id="vsP1Delta" style="font-size:9px;margin-top:2px"></div></div>
+<div class="vs-fighter"><canvas id="vsP1C" width="96" height="96"></canvas><div id="vsP1N" style="font-size:14px;color:#00ff88"></div><div id="vsP1A" style="font-size:10px;color:#888"></div><div id="vsP1Delta" style="font-size:9px;margin-top:2px"></div><div id="vsP1Clock"></div></div>
 <div class="vs-text">VS</div>
-<div class="vs-fighter"><canvas id="vsP2C" width="96" height="96"></canvas><div id="vsP2N" style="font-size:14px;color:#ff4444"></div><div id="vsP2A" style="font-size:10px;color:#888"></div><div id="vsP2Delta" style="font-size:9px;margin-top:2px"></div></div>
+<div class="vs-fighter"><canvas id="vsP2C" width="96" height="96"></canvas><div id="vsP2N" style="font-size:14px;color:#ff4444"></div><div id="vsP2A" style="font-size:10px;color:#888"></div><div id="vsP2Delta" style="font-size:9px;margin-top:2px"></div><div id="vsP2Clock"></div></div>
 </div>
 <div id="bioBreakdown" style="max-width:500px;margin:8px auto;text-align:left;display:none"></div>
 <div class="special-reveal" id="specialReveal"></div>
@@ -197,6 +242,28 @@ input[type="file"]{display:none}
 </div>
 <button class="controls-toggle" id="controlsToggle" onclick="toggleControls()">CONTROLS</button>
 <button class="btn btn-gold autoplay-btn" id="autoplayBtn" onclick="toggleAutoplay()">PLAY FOR ME</button>
+<div id="fightTicker"></div>
+<div id="touchControls">
+<div class="touch-left">
+<button class="touch-btn" data-key="ArrowLeft">&larr;</button>
+<button class="touch-btn" data-key="ArrowRight">&rarr;</button>
+<button class="touch-btn" data-key="KeyS" style="width:100%;max-width:150px">JUMP</button>
+</div>
+<div class="touch-right">
+<button class="touch-btn touch-atk" data-key="KeyA" style="width:72px;height:72px">ATK</button>
+<button class="touch-btn touch-sp" data-key="KeyD" style="width:72px;height:72px">SP</button>
+</div>
+</div>
+</div>
+
+<div class="screen" id="compareScreen">
+<h2>STAT COMPARISON</h2>
+<div class="subtitle">BLOODWORK VS BLOODWORK</div>
+<div id="compareContent" style="max-width:700px;width:90%;max-height:70vh;overflow-y:auto;padding:10px"></div>
+<div style="display:flex;gap:10px;margin-top:15px;flex-wrap:wrap;justify-content:center">
+<button class="btn btn-gold" onclick="shareComparison()">SHARE</button>
+<button class="btn" onclick="compareMode=false;showScreen('modeScreen')">BACK</button>
+</div>
 </div>
 
 <div class="screen" id="resultScreen"><div id="resultContent"></div></div>
@@ -211,6 +278,63 @@ let GS=null;
 let afId=null;
 let autoplayOn=false;
 let mpWS=null,mpRoom=null,mpPlayerNum=0,mpRemoteKeys={},mpJoinCode=null;
+const IS_TOUCH='ontouchstart' in window||navigator.maxTouchPoints>0;
+let compareMode=false;
+
+// ======== TOUCH CONTROLS ========
+function initTouchControls(){
+  if(!IS_TOUCH)return;
+  const tc=document.getElementById('touchControls');
+  tc.querySelectorAll('[data-key]').forEach(btn=>{
+    btn.addEventListener('touchstart',e=>{e.preventDefault();if(GS)GS.keys[btn.dataset.key]=true},{passive:false});
+    btn.addEventListener('touchend',e=>{e.preventDefault();if(GS)GS.keys[btn.dataset.key]=false},{passive:false});
+    btn.addEventListener('touchcancel',e=>{if(GS)GS.keys[btn.dataset.key]=false});
+  });
+}
+
+// ======== FIGHT TICKER ========
+const TICKER_MSGS=[
+  // generic
+  '{p1name} VS {p2name} — WINNER TAKES ALL',
+  'BIOLOGICAL DATA LOCKED AND LOADED',
+  'YOUR BLOOD TELLS THE STORY',
+  'EVERY PUNCH COSTS YEARS',
+  'THE CLOCK NEVER STOPS',
+  'FIGHT LIKE YOUR LIFE DEPENDS ON IT — BECAUSE IT DOES',
+  'AGING IS THE REAL OPPONENT',
+  // contextual (use placeholders)
+  '{p1name} ENTERS WITH {p1yl} YEARS LEFT',
+  '{p2name} ENTERS WITH {p2yl} YEARS LEFT',
+  // educational
+  'HIGH CRP = INFLAMMATION = FASTER AGING',
+  'TESTOSTERONE DRIVES ATTACK POWER AND CRIT CHANCE',
+  'VO2MAX IS THE SINGLE BEST PREDICTOR OF LONGEVITY',
+  'LOW HDL? YOUR PIPES ARE CLOGGED. LITERALLY.',
+  'GLUCOSE CONTROL = STAMINA CONTROL',
+  'YOUR KIDNEYS FILTER 50 GALLONS OF BLOOD A DAY',
+  'HBA1C ABOVE 5.7 = PRE-DIABETIC TERRITORY',
+  'CORTISOL IS THE STRESS HORMONE — AND THE AGING HORMONE',
+  // shade
+  'NICE LIPIDS... SAID NO ONE EVER',
+  'SOMEBODY SKIPPED THEIR BLOODWORK',
+  'YOUR LIVER IS CARRYING THIS FIGHT',
+  'BET YOU WISH YOU ATE MORE VEGETABLES',
+  'THIS IS WHAT HAPPENS WHEN YOU SKIP CARDIO',
+  'YOUR DOCTOR WOULD NOT APPROVE OF THIS'
+];
+function updateTicker(gs){
+  if(!gs.ticker)return;
+  gs.ticker.timer++;
+  if(gs.ticker.timer%500===0){
+    gs.ticker.idx=(gs.ticker.idx+1)%TICKER_MSGS.length;
+    const el=document.getElementById('fightTicker');if(!el)return;
+    let msg=TICKER_MSGS[gs.ticker.idx];
+    msg=msg.replace(/\{p1name\}/g,gs.p1.name).replace(/\{p2name\}/g,gs.p2.name)
+       .replace(/\{p1yl\}/g,Math.floor(gs.p1.yl)).replace(/\{p2yl\}/g,Math.floor(gs.p2.yl));
+    el.textContent=msg;
+  }
+}
+
 (function(){const p=new URLSearchParams(location.search);const r=p.get('room');if(r)mpJoinCode=r})();
 function toggleControls(){
   const p=document.getElementById('controlsPanel');p.classList.toggle('hidden');
@@ -380,7 +504,18 @@ function showScreen(id){
   if(id==='charScreen')buildCharGrid();
   if(id==='aiSelectScreen')buildAiGrid();
   const cp=document.getElementById('controlsPanel'),ct=document.getElementById('controlsToggle'),ab=document.getElementById('autoplayBtn');
-  if(cp&&ct&&ab){const show=id==='fightScreen';cp.style.display=show?'':'none';ct.style.display=show?'':'none';ab.style.display=show?'':'none'}
+  const tc=document.getElementById('touchControls'),ft=document.getElementById('fightTicker');
+  if(cp&&ct&&ab){
+    const show=id==='fightScreen';
+    if(IS_TOUCH){cp.style.display='none';ct.style.display='none';ab.style.display=show?'':'none';
+      if(tc)tc.style.display=show?'flex':'none';
+      if(ft){ft.style.display=show?'block':'none';ft.style.bottom='25vh'}
+    }else{
+      cp.style.display=show?'':'none';ct.style.display=show?'':'none';ab.style.display=show?'':'none';
+      if(tc)tc.style.display='none';
+      if(ft){ft.style.display=show?'block':'none';ft.style.bottom='0'}
+    }
+  }
 }
 
 // ======== SKINS ========
@@ -392,7 +527,11 @@ const SKINS=[
   {name:'ELIZABETH',skin:'#f0d0b0',outfit:'#1a1a6a',accent:'#ffcc00',head:'crown'},
   {name:'MANDELA',skin:'#6a3a1a',outfit:'#335533',accent:'#ffcc00',head:'helmet'},
   {name:'MEL',skin:'#d4a070',outfit:'#1a1a1a',accent:'#ff4444',head:'skull'},
-  {name:'CASTRO',skin:'#b08050',outfit:'#2a4a2a',accent:'#4a4a2a',head:'cap'}
+  {name:'CASTRO',skin:'#b08050',outfit:'#2a4a2a',accent:'#4a4a2a',head:'cap'},
+  {name:'CHAD',skin:'#e8b080',outfit:'#ffffff',accent:'#ff0066',head:'headband'},
+  {name:'DR. Q',skin:'#d0a070',outfit:'#2a4a6a',accent:'#00ffff',head:'mask'},
+  {name:'ROGAN',skin:'#d8a878',outfit:'#1a1a1a',accent:'#ff8800',head:'cap'},
+  {name:'HACK',skin:'#c0b0a0',outfit:'#0a0a0a',accent:'#00ff00',head:'hood'}
 ];
 
 // ======== PIXEL ART ========
@@ -544,12 +683,100 @@ function buildAiGrid(){
   });
 }
 
+function startCompare(){compareMode=true;showScreen('aiSelectScreen')}
 function confirmAI(){
   const ai=AIOPS.find(a=>a.id===selAiId);if(!ai)return;
   OD={name:ai.name,title:ai.title,bloodwork:ai.bw,stats:calcStats(ai.bw),skinIndex:ai.si,
     age:ai.age,traits:assignTraits(ai.bw),aiStyle:ai.ai,special:ai.sp,isAI:true,
     lives:ai.id==='rasputin'?3:1};
+  if(compareMode){showCompareScreen();return}
   startPrefight();
+}
+function showCompareScreen(){
+  const el=document.getElementById('compareContent');
+  const statKeys=['attack','defense','speed','stamina','regen','rage'];
+  const colors={attack:'#ff4444',defense:'#00ff88',speed:'#00ffff',stamina:'#ffcc00',regen:'#44ff44',rage:'#ff8800'};
+  let h='<div style="display:flex;justify-content:space-between;margin-bottom:15px">';
+  h+='<div style="text-align:center;flex:1"><canvas id="cmpP1C" width="64" height="64" style="image-rendering:pixelated"></canvas><div style="color:#00ff88;font-size:11px">'+PD.name+'</div><div style="color:#888;font-size:8px">AGE: '+PD.age+'</div></div>';
+  h+='<div style="text-align:center;flex:1"><canvas id="cmpP2C" width="64" height="64" style="image-rendering:pixelated"></canvas><div style="color:#ff4444;font-size:11px">'+OD.name+'</div><div style="color:#888;font-size:8px">AGE: '+OD.age+'</div></div>';
+  h+='</div>';
+  statKeys.forEach(sk=>{
+    const v1=PD.stats[sk],v2=OD.stats[sk],clr=colors[sk];
+    const w1=Math.max(5,v1)+'%',w2=Math.max(5,v2)+'%';
+    const better1=v1>v2,better2=v2>v1;
+    h+='<div style="margin:6px 0"><div style="text-align:center;font-size:8px;color:'+clr+';margin-bottom:2px">'+sk.toUpperCase()+'</div>';
+    h+='<div style="display:flex;gap:4px;align-items:center">';
+    h+='<div style="font-size:9px;width:30px;text-align:right;color:'+(better1?clr:'#555')+'">'+v1+'</div>';
+    h+='<div style="flex:1;height:10px;background:#222;border-radius:2px;overflow:hidden;direction:rtl"><div style="height:100%;width:'+w1+';background:'+clr+';opacity:'+(better1?1:0.4)+';border-radius:2px"></div></div>';
+    h+='<div style="flex:1;height:10px;background:#222;border-radius:2px;overflow:hidden"><div style="height:100%;width:'+w2+';background:'+clr+';opacity:'+(better2?1:0.4)+';border-radius:2px"></div></div>';
+    h+='<div style="font-size:9px;width:30px;color:'+(better2?clr:'#555')+'">'+v2+'</div>';
+    h+='</div></div>';
+  });
+  // Clock comparison
+  const yl1=Math.max(5,100-PD.age),yl2=Math.max(5,100-OD.age);
+  h+='<div style="display:flex;justify-content:space-around;margin-top:15px">';
+  h+='<div style="text-align:center"><div class="clock-years" style="font-size:24px;color:'+(yl1>yl2?'#00ff88':'#ff4444')+'">'+yl1+'</div><div style="font-size:7px;color:#888">YEARS LEFT</div></div>';
+  h+='<div style="text-align:center"><div class="clock-years" style="font-size:24px;color:'+(yl2>yl1?'#00ff88':'#ff4444')+'">'+yl2+'</div><div style="font-size:7px;color:#888">YEARS LEFT</div></div>';
+  h+='</div>';
+  // Traits
+  const t1=PD.traits||{strengths:[],vulnerabilities:[]},t2=OD.traits||{strengths:[],vulnerabilities:[]};
+  if(t1.strengths.length||t1.vulnerabilities.length||t2.strengths.length||t2.vulnerabilities.length){
+    h+='<div style="display:flex;gap:10px;margin-top:12px;justify-content:center;flex-wrap:wrap">';
+    h+='<div style="flex:1;min-width:120px">';t1.strengths.forEach(id=>{const t=TRAITS[id];if(t)h+='<div style="color:'+t.color+';font-size:7px">+ '+t.name+'</div>'});
+    t1.vulnerabilities.forEach(id=>{const t=TRAITS[id];if(t)h+='<div style="color:'+t.color+';font-size:7px">- '+t.name+'</div>'});h+='</div>';
+    h+='<div style="flex:1;min-width:120px">';t2.strengths.forEach(id=>{const t=TRAITS[id];if(t)h+='<div style="color:'+t.color+';font-size:7px">+ '+t.name+'</div>'});
+    t2.vulnerabilities.forEach(id=>{const t=TRAITS[id];if(t)h+='<div style="color:'+t.color+';font-size:7px">- '+t.name+'</div>'});h+='</div>';
+    h+='</div>';
+  }
+  el.innerHTML=h;
+  showScreen('compareScreen');
+  drawSmall(document.getElementById('cmpP1C'),PD.skinIndex,64);
+  drawSmall(document.getElementById('cmpP2C'),OD.skinIndex,64);
+}
+function shareComparison(){
+  const cv=document.createElement('canvas');cv.width=600;cv.height=400;
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle='#0a0a12';ctx.fillRect(0,0,600,400);
+  for(let y=0;y<400;y+=3){ctx.fillStyle='rgba(0,0,0,0.15)';ctx.fillRect(0,y,600,1)}
+  ctx.font='bold 16px "Press Start 2P",monospace';ctx.fillStyle='#ff4444';ctx.textAlign='center';
+  ctx.fillText('BIOLOGICAL AGE DEATH MATCH',300,30);
+  ctx.font='10px "Press Start 2P",monospace';ctx.fillStyle='#00ffff';
+  ctx.fillText('STAT COMPARISON',300,55);
+  // Names
+  ctx.font='12px "Press Start 2P",monospace';
+  ctx.fillStyle='#00ff88';ctx.textAlign='right';ctx.fillText(PD.name,280,85);
+  ctx.fillStyle='#ff4444';ctx.textAlign='left';ctx.fillText(OD.name,320,85);
+  // Sprites
+  const s1=document.createElement('canvas');drawSmall(s1,PD.skinIndex,48);
+  const s2=document.createElement('canvas');drawSmall(s2,OD.skinIndex,48);
+  ctx.drawImage(s1,232,90);ctx.drawImage(s2,320,90);
+  // Stats bars
+  const statKeys=['attack','defense','speed','stamina','regen','rage'];
+  const colors={attack:'#ff4444',defense:'#00ff88',speed:'#00ffff',stamina:'#ffcc00',regen:'#44ff44',rage:'#ff8800'};
+  let by=160;
+  statKeys.forEach(sk=>{
+    const v1=PD.stats[sk],v2=OD.stats[sk],clr=colors[sk];
+    ctx.font='8px "Press Start 2P",monospace';ctx.fillStyle=clr;ctx.textAlign='center';
+    ctx.fillText(sk.toUpperCase(),300,by);
+    ctx.fillStyle='#222';ctx.fillRect(80,by+3,200,8);ctx.fillRect(320,by+3,200,8);
+    ctx.fillStyle=clr;
+    ctx.fillRect(280-v1*2,by+3,v1*2,8);
+    ctx.fillRect(320,by+3,v2*2,8);
+    ctx.fillStyle=v1>v2?clr:'#555';ctx.textAlign='right';ctx.fillText(String(v1),75,by+10);
+    ctx.fillStyle=v2>v1?clr:'#555';ctx.textAlign='left';ctx.fillText(String(v2),525,by+10);
+    by+=30;
+  });
+  ctx.fillStyle='#555';ctx.font='8px "Press Start 2P",monospace';ctx.textAlign='center';
+  ctx.fillText('BIO-AGE-DEATH-MATCH.ONRENDER.COM',300,380);
+  cv.toBlob(function(blob){
+    if(!blob)return;
+    const f=new File([blob],'comparison.png',{type:'image/png'});
+    if(navigator.share&&navigator.canShare&&navigator.canShare({files:[f]})){
+      navigator.share({text:'Compare your bloodwork stats in BIOLOGICAL AGE DEATH MATCH!',files:[f]}).catch(()=>{});
+    }else{
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='comparison.png';a.click();URL.revokeObjectURL(a.href);
+    }
+  },'image/png');
 }
 
 // ======== BLOODWORK PARSER ========
@@ -927,6 +1154,59 @@ document.getElementById('fileInput').addEventListener('change',function(e){
   }
 });
 
+const STAT_EX={
+  attack:{label:'ATTACK',color:'#ff4444',
+    markers:['crp','testosterone','cortisol','glucose','a1c','insulin'],
+    explain:'Inflammation + hormones + metabolism → raw striking power'},
+  defense:{label:'DEFENSE',color:'#00ff88',
+    markers:['totalCholesterol','hdl','ldl','triglycerides','egfr','ast','alt','vitaminD'],
+    explain:'Lipids + kidney function + liver health + nutrients → damage resistance'},
+  speed:{label:'SPEED',color:'#00ffff',
+    markers:['restingHR','vo2max','glucose','a1c','insulin','testosterone','cortisol'],
+    explain:'Cardiovascular fitness + metabolism + hormones → movement speed'},
+  stamina:{label:'STAMINA',color:'#ffcc00',
+    markers:['restingHR','vo2max','glucose','a1c','insulin','egfr','vitaminD'],
+    explain:'Cardio + metabolism + kidney + nutrition → endurance'},
+  regen:{label:'REGEN',color:'#44ff44',
+    markers:['glucose','a1c','insulin','egfr','ast','alt','vitaminD'],
+    explain:'Metabolism + kidney + liver + nutrients → recovery rate'},
+  rage:{label:'RAGE',color:'#ff8800',
+    markers:['crp','totalCholesterol','hdl','ldl','triglycerides','ast','alt'],
+    explain:'Inflammation + bad lipids + liver stress → special move charge'}
+};
+function buildStatsScreen(){
+  const bw=PD.bloodwork,stats=PD.stats,traits=PD.traits;
+  const el=document.getElementById('statsContent');
+  const statKeys=['attack','defense','speed','stamina','regen','rage'];
+  let h='';
+  statKeys.forEach(sk=>{
+    const ex=STAT_EX[sk];const val=stats[sk];
+    h+='<div class="stat-row"><div class="stat-header"><span class="stat-label" style="color:'+ex.color+'">'+ex.label+'</span>';
+    h+='<span class="stat-val" style="color:'+ex.color+'">'+val+'</span></div>';
+    h+='<div class="stat-bar-outer"><div class="stat-bar-inner" style="width:'+val+'%;background:'+ex.color+'"></div></div>';
+    h+='<div class="stat-markers">';
+    ex.markers.forEach(mk=>{
+      if(bw[mk]==null)return;
+      const ref=MK[mk];if(!ref)return;
+      const sc=scoreMK(bw[mk],ref);
+      const cls=sc>0.65?'marker-good':sc<0.35?'marker-bad':'marker-neutral';
+      const label=mk.replace(/([A-Z])/g,' $1').toUpperCase();
+      h+='<span class="'+cls+'">'+label+': '+bw[mk]+'</span>';
+    });
+    h+='</div><div style="font-size:7px;color:#666;margin-bottom:10px">'+ex.explain+'</div></div>';
+  });
+  if(traits.all.length>0){
+    h+='<div class="stat-traits"><div style="font-size:10px;color:#ffcc00;margin:12px 0 6px">TRAITS DETECTED</div>';
+    traits.all.forEach(tid=>{
+      const t=TRAITS[tid];if(!t)return;
+      const icon=t.type==='strength'?'+':'-';
+      h+='<div style="color:'+t.color+';font-size:8px;margin:3px 0">'+icon+' '+t.name+' — '+t.desc+'</div>';
+    });
+    h+='</div>';
+  }
+  el.innerHTML=h;
+}
+
 function doProcessBloodwork(){
   const nm=document.getElementById('fighterName').value.trim().toUpperCase();
   if(!nm){document.getElementById('uploadError').textContent='ENTER A FIGHTER NAME';return}
@@ -943,7 +1223,8 @@ function doProcessBloodwork(){
   PD.traits=assignTraits(PD.bloodwork);
   PD.stats=calcStats(PD.bloodwork);
   PD.special=getPlayerSpecial(PD.bloodwork);
-  showScreen('charScreen');
+  buildStatsScreen();
+  showScreen('statsScreen');
 }
 
 // Dev shortcut ~ key
@@ -966,6 +1247,22 @@ function mkSpecBox(sp,color){
     +'<div class="sp-desc">'+info.desc+'</div>'
     +'<div class="sp-fx">EFFECT: '+info.fx+'</div></div>';
 }
+function renderClock(containerId,data){
+  const el=document.getElementById(containerId);if(!el)return;
+  const age=data.age||30;const yl=Math.max(5,100-age);
+  const traits=data.traits||{strengths:[],vulnerabilities:[]};
+  let tr=0.5+(age/100);let mods=[];
+  if(traits.vulnerabilities.includes('KIDNEY_STRAIN')){tr*=1.15;mods.push({t:'KIDNEY STRAIN',v:'+15%',c:'#ff6666'})}
+  if(traits.strengths.includes('INFLAMMATION_ZERO')){tr*=0.85;mods.push({t:'ZERO INFLAMMATION',v:'-15%',c:'#88ffff'})}
+  if(traits.vulnerabilities.includes('INFLAMED')){tr*=1.25;mods.push({t:'INFLAMED',v:'+25%',c:'#ff4444'})}
+  const clr=yl<20?'#ff4444':yl<40?'#ffcc00':'#00ff88';
+  let h='<div class="clock-years" style="color:'+clr+'">'+yl+'</div>';
+  h+='<div class="clock-label">YEARS REMAINING</div>';
+  h+='<div class="clock-rate" style="color:'+(tr>0.8?'#ff8800':'#00ff88')+'">AGING AT '+tr.toFixed(2)+'x</div>';
+  if(mods.length>0){h+='<div class="clock-mods">';mods.forEach(m=>{h+='<div style="color:'+m.c+';font-size:7px">'+m.t+' ('+m.v+')</div>'});h+='</div>'}
+  el.innerHTML=h;
+}
+
 function startPrefight(){
   showScreen('prefightScreen');
   drawSmall(document.getElementById('vsP1C'),PD.skinIndex,96);
@@ -974,6 +1271,8 @@ function startPrefight(){
   document.getElementById('vsP2N').textContent=OD.name;
   document.getElementById('vsP1A').textContent='AGE: '+PD.age;
   document.getElementById('vsP2A').textContent='AGE: '+OD.age;
+  renderClock('vsP1Clock',PD);
+  renderClock('vsP2Clock',OD);
   // Show traits for each fighter
   function mkTraitHTML(traits,label){
     if(!traits)return'';
@@ -1053,11 +1352,20 @@ function startFight(){
   p1.y=gy-FH;p2.y=gy-FH;
   document.getElementById('hudN1').textContent=p1.name;
   document.getElementById('hudN2').textContent=p2.name;
-  GS={p1,p2,cv,ctx:cv.getContext('2d'),gy,run:true,winner:null,
-    parts:[],dmgs:[],shk:0,time:0,dt:1/60,keys:{},
-    rvTxt:null,rvT:0};
+  if(IS_TOUCH){cv.height=Math.floor(vH()*0.75);const gy2=cv.height*GND_F;p1.y=gy2-FH;p2.y=gy2-FH;
+    GS={p1,p2,cv,ctx:cv.getContext('2d'),gy:gy2,run:true,winner:null,
+      parts:[],dmgs:[],shk:0,time:0,dt:1/60,keys:{},
+      rvTxt:null,rvT:0,ticker:{timer:0,idx:0}};
+  }else{
+    GS={p1,p2,cv,ctx:cv.getContext('2d'),gy,run:true,winner:null,
+      parts:[],dmgs:[],shk:0,time:0,dt:1/60,keys:{},
+      rvTxt:null,rvT:0,ticker:{timer:0,idx:0}};
+  }
   document.addEventListener('keydown',kd);
   document.addEventListener('keyup',ku);
+  initTouchControls();
+  const ftEl=document.getElementById('fightTicker');
+  if(ftEl)ftEl.textContent=GS.p1.name+' VS '+GS.p2.name+' — WINNER TAKES ALL';
   if(afId)cancelAnimationFrame(afId);
   gLoop();
 }
@@ -1096,7 +1404,7 @@ function gLoop(){
     if(GS.p1.fr%3===0)sendState();
   }
   upF(GS,GS.p1);upF(GS,GS.p2);
-  upClocks(GS);doHits(GS);upParts(GS);chkWin(GS);doRender(GS);
+  upClocks(GS);updateTicker(GS);doHits(GS);upParts(GS);chkWin(GS);doRender(GS);
   afId=requestAnimationFrame(gLoop);
 }
 
@@ -1218,6 +1526,7 @@ function doAI(gs,ai,tgt){
 // ======== SPECIALS ========
 function doSpecial(gs,f,tgt){
   f.spReady=false;f.spCD=600;f.spAct=180;sfxSpec();
+  const lines=ANNOUNCER_LINES.special;triggerAnnouncer(gs,lines[Math.floor(Math.random()*lines.length)]);
   switch(f.sp){
     case'COVENANT':f.inv=180;break;
     case'PROTOCOL':
@@ -1309,15 +1618,21 @@ function tryHit(gs,a,d){
   }
 }
 function applyDmg(gs,t,s,d){
+  const wasAbove30=t.hp>30;
   t.hp-=d;t.stun=8;t.ta+=d*0.05;t.vx=(t.x>s.x?1:-1)*5;sfxHit();gs.shk=8;
   mkDmg(gs,t.x+FW/2,t.y-10,Math.round(d),'#ff4444');
   for(let i=0;i<5;i++)gs.parts.push({x:t.x+FW/2,y:t.y+FH/3,vx:(Math.random()-0.5)*6,vy:-Math.random()*4-2,l:30+Math.random()*20,c:'#ff4444'});
+  if(wasAbove30&&t.hp<=30){const lines=ANNOUNCER_LINES.lowHP;triggerAnnouncer(gs,lines[Math.floor(Math.random()*lines.length)])}
 }
 function mkDmg(gs,x,y,txt,c){gs.dmgs.push({x,y,t:String(txt),c,l:45,vy:-2})}
 
 // ======== CLOCKS ========
 function upClocks(gs){
-  [gs.p1,gs.p2].forEach(f=>{f.yl-=(f.tr+f.ta)*gs.dt;f.ta*=0.98;if(f.yl<0)f.yl=0});
+  [gs.p1,gs.p2].forEach(f=>{
+    const wasAbove10=f.yl>10;
+    f.yl-=(f.tr+f.ta)*gs.dt;f.ta*=0.98;if(f.yl<0)f.yl=0;
+    if(wasAbove10&&f.yl<=10){const lines=ANNOUNCER_LINES.clockLow;triggerAnnouncer(gs,lines[Math.floor(Math.random()*lines.length)])}
+  });
 }
 
 // ======== WIN CHECK ========
@@ -1383,6 +1698,47 @@ function doRender(gs){
   document.getElementById('spR').innerHTML='<div style="color:#888">'+gs.p2.sp.replace(/_/g,' ')+'</div>'+(gs.p2.spAct>0?'<div style="color:#ff4444">ACTIVE</div>':'');
 }
 
+// ======== FIGHT ANNOUNCER ========
+function triggerAnnouncer(gs,text){
+  if(!text)return;
+  const el=document.createElement('div');el.className='announcer-text';el.textContent=text;
+  document.getElementById('fightScreen').appendChild(el);
+  setTimeout(()=>el.remove(),2500);
+}
+const ANNOUNCER_LINES={
+  lowHP:['SOMEBODY CALL A DOCTOR!','HANGING BY A THREAD!','ONE MORE HIT AND IT\'S OVER!','THE CLOCK IS TICKING... FASTER!','IS THIS THE END?!'],
+  special:['SPECIAL MOVE ACTIVATED!','HERE IT COMES!','BIOLOGICAL WARFARE!','BLOOD RAGE UNLEASHED!'],
+  clockLow:['YEARS RUNNING OUT!','THE REAPER APPROACHES!','TIME IS NOT ON YOUR SIDE!','AGING IN FAST FORWARD!']
+};
+
+// ======== RESULT FLAVOR ========
+const RESULT_FLAVOR={
+  aiLoss:{
+    abraham:'YOU OUTLIVED THE PATRIARCH! NOT BAD FOR SOMEONE BORN AFTER INDOOR PLUMBING.',
+    bryan:'$2 MILLION A YEAR AND HE STILL LOST TO YOU? MAYBE JUST EAT A VEGETABLE.',
+    yoda:'900 YEARS OF WISDOM AND HE STILL COULDN\'T BEAT YOUR BLOODWORK.',
+    lemmy:'LEMMY WOULD RESPECT THIS. PROBABLY. AFTER A WHISKEY.',
+    danzig:'MOTHER TOLD HIS CHILDREN. THEY WALKED ANYWAY.',
+    ozzy:'THE PRINCE OF DARKNESS BOWS TO YOUR SUPERIOR BIOLOGY.',
+    rasputin:'KILLED HIM AGAIN. FOR THE FOURTH TIME.',
+    joan:'DIVINE FURY MET DIVINE BLOODWORK.',
+    genghis:'YOU JUST CONQUERED THE CONQUEROR.',
+    bowie:'THE STARMAN RETURNS TO THE STARS.',
+    cleopatra:'YOUR BLOOD STRATEGY BEAT HER POLITICAL STRATEGY.',
+    keith:'SOMEHOW YOU OUT-SURVIVED KEITH RICHARDS. SCIENTISTS ARE BAFFLED.'
+  },
+  closeWin:'YOU WON BUT BARELY. YOUR DOCTOR WOULD STILL BE DISAPPOINTED.',
+  dominantWin:'TOTAL DOMINATION. YOUR BLOODWORK IS A WEAPON OF MASS DESTRUCTION.',
+  clockDeath:'THEIR BIOLOGICAL CLOCK HIT ZERO. THAT\'S WHAT HAPPENS WHEN YOU SKIP YOUR LABS.'
+};
+function getFlavorText(gs){
+  const w=gs.winner,l=w===gs.p1?gs.p2:gs.p1;
+  if(l.yl<=0)return RESULT_FLAVOR.clockDeath;
+  if(l.isAI&&selAiId&&RESULT_FLAVOR.aiLoss[selAiId])return RESULT_FLAVOR.aiLoss[selAiId];
+  if(w.hp<25)return RESULT_FLAVOR.closeWin;
+  return RESULT_FLAVOR.dominantWin;
+}
+
 // ======== RESULTS ========
 function showResult(gs){
   document.removeEventListener('keydown',kd);
@@ -1394,19 +1750,74 @@ function showResult(gs){
     rc.innerHTML='<div class="shame-text">YOU LOST<br>TO A BABY</div><div style="color:#888;font-size:10px;margin:20px">THIS IS PERMANENT.</div><button class="btn btn-red" onclick="showScreen(\'titleScreen\')">SHAME RESTART</button>';
     return;
   }
+  const flavor=getFlavorText(gs);
   rc.innerHTML='<h1 style="font-size:clamp(18px,4vw,42px)">FATALITY</h1>'
     +'<div style="font-size:clamp(16px,3vw,36px);color:'+(w===gs.p1?'#00ff88':'#ff4444')+';margin:20px">'+w.name+' WINS</div>'
+    +'<div style="color:#ffcc00;font-size:9px;margin:8px;max-width:400px;line-height:1.8;text-align:center">'+flavor+'</div>'
     +'<div style="color:#888;font-size:10px;margin:10px">'+l.name+'\'S BIOLOGICAL CLOCK HIT ZERO<br>FIGHT TIME: '+Math.floor(gs.time)+'s</div>'
     +'<canvas id="resC" width="96" height="96" style="image-rendering:pixelated;margin:15px"></canvas>'
     +'<div style="color:#ffcc00;font-size:9px">YEARS REMAINING: '+Math.max(0,Math.floor(w.yl))+'</div>'
     +'<div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;justify-content:center">'
     +'<button class="btn btn-gold" onclick="showScreen(\'aiSelectScreen\')">FIGHT AGAIN</button>'
-    +'<button class="btn" onclick="showScreen(\'titleScreen\')">TITLE SCREEN</button></div>';
+    +'<button class="btn" onclick="showScreen(\'titleScreen\')">TITLE SCREEN</button>'
+    +'<button class="btn btn-share" onclick="shareResult()">SHARE RESULT</button></div>';
   const rc2=document.getElementById('resC');if(rc2)drawSmall(rc2,w.si,96);
+  lastResult={winner:w.name,loser:l.name,winSI:w.si,loseSI:l.si,yl:Math.max(0,Math.floor(w.yl)),time:Math.floor(gs.time),winHP:Math.max(0,Math.floor(w.hp))};
+}
+let lastResult=null;
+function generateFightCard(){
+  if(!lastResult)return null;
+  const cv=document.createElement('canvas');cv.width=600;cv.height=400;
+  const ctx=cv.getContext('2d');
+  // dark bg
+  ctx.fillStyle='#0a0a12';ctx.fillRect(0,0,600,400);
+  // scanlines
+  ctx.fillStyle='rgba(0,0,0,0.15)';
+  for(let y=0;y<400;y+=3)ctx.fillRect(0,y,600,1);
+  // title
+  ctx.font='bold 22px "Press Start 2P",monospace';ctx.fillStyle='#ff4444';ctx.textAlign='center';
+  ctx.fillText('BIOLOGICAL AGE DEATH MATCH',300,40);
+  // winner
+  ctx.font='16px "Press Start 2P",monospace';ctx.fillStyle='#00ff88';
+  ctx.fillText(lastResult.winner+' WINS',300,90);
+  // loser
+  ctx.font='10px "Press Start 2P",monospace';ctx.fillStyle='#888';
+  ctx.fillText('DEFEATED '+lastResult.loser,300,120);
+  // draw winner sprite
+  const sprCv=document.createElement('canvas');drawSmall(sprCv,lastResult.winSI,96);
+  ctx.drawImage(sprCv,300-48,140);
+  // stats
+  ctx.font='10px "Press Start 2P",monospace';ctx.fillStyle='#ffcc00';ctx.textAlign='center';
+  ctx.fillText('YEARS REMAINING: '+lastResult.yl,300,260);
+  ctx.fillStyle='#888';
+  ctx.fillText('FIGHT TIME: '+lastResult.time+'s',300,285);
+  ctx.fillText('HP LEFT: '+lastResult.winHP+'%',300,305);
+  // cta
+  ctx.font='9px "Press Start 2P",monospace';ctx.fillStyle='#00ffff';
+  ctx.fillText('UPLOAD YOUR BLOODWORK. FIGHT YOUR BIOLOGY.',300,345);
+  ctx.fillStyle='#555';ctx.font='8px "Press Start 2P",monospace';
+  ctx.fillText('BIO-AGE-DEATH-MATCH.ONRENDER.COM',300,375);
+  return cv;
+}
+function shareResult(){
+  const cv=generateFightCard();if(!cv)return;
+  cv.toBlob(function(blob){
+    if(!blob)return;
+    const f=new File([blob],'fight-result.png',{type:'image/png'});
+    if(navigator.share&&navigator.canShare&&navigator.canShare({files:[f]})){
+      navigator.share({text:'I just won a BIOLOGICAL AGE DEATH MATCH! Upload your bloodwork and fight me.',files:[f]}).catch(()=>{});
+    }else{
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='fight-result.png';a.click();URL.revokeObjectURL(a.href);
+    }
+  },'image/png');
 }
 
 // Resize handler
-window.addEventListener('resize',()=>{if(GS&&GS.run){GS.gy=vH()*GND_F;[GS.p1,GS.p2].forEach(f=>{f.x=clamp(f.x,10,vW()-FW-10);const g=GS.gy-FH;if(f.y>g){f.y=g;f.gnd=true}})}});
+window.addEventListener('resize',()=>{if(GS&&GS.run){
+  const ch=IS_TOUCH?Math.floor(vH()*0.75):vH();
+  GS.cv.width=vW();GS.cv.height=ch;GS.gy=ch*GND_F;
+  [GS.p1,GS.p2].forEach(f=>{f.x=clamp(f.x,10,vW()-FW-10);const g=GS.gy-FH;if(f.y>g){f.y=g;f.gnd=true}});
+}});
 
 // ======== MP JOIN CODE (URL param) ========
 if(mpJoinCode){
